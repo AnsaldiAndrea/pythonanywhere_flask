@@ -1,0 +1,150 @@
+{% extends "layout.html" %}
+
+{% block head %}
+
+<style>
+    .fixed_c {width:50%}
+</style>
+
+{% endblock %}
+
+
+{% block body %}
+
+
+<h2>Releases</h2>
+<p>List of all available Releases</p>
+<hr>
+
+<div class="panel-group">
+  <div class="panel panel-primary">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse_prev">Previous Weeks</a>
+      </h4>
+    </div>
+    <div id="collapse_prev" class="panel-collapse collapse in">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Volume</th>
+              <th></th>
+              <th>Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in RELEASE_DICT['prev'] %}
+            <tr class="info">
+              <td class='fixed_c'><strong>{{r.manga.title}}</strong></td>
+              <td>{{r.volume}}</td>
+              <td>{{r.release_date.strftime("%d/%m/%Y")}}</td>
+              <td>{{ "{:10.2f}".format(r.price) }} €</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+    </div>
+  </div>
+</div>
+
+<div class="panel-group">
+  <div class="panel panel-primary">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse_this">This Week</a>
+      </h4>
+    </div>
+    <div id="collapse_this" class="panel-collapse collapse in">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Volume</th>
+              <th></th>
+              <th>Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in RELEASE_DICT['this'] %}
+            <tr class="info">
+              <td class='fixed_c'><strong>{{r.manga.title}}</strong></td>
+              <td>{{r.volume}}</td>
+              <td>{{r.release_date.strftime("%d/%m/%Y")}}</td>
+              <td>{{ "{:10.2f}".format(r.price) }} €</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+    </div>
+  </div>
+</div>
+
+<div class="panel-group">
+  <div class="panel panel-primary">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse_next">Next Week</a>
+      </h4>
+    </div>
+    <div id="collapse_next" class="panel-collapse collapse in">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Volume</th>
+              <th></th>
+              <th>Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in RELEASE_DICT['next'] %}
+            <tr class="info">
+              <td class='fixed_c'><strong>{{r.manga.title}}</strong></td>
+              <td>{{r.volume}}</td>
+              <td>{{r.release_date.strftime("%d/%m/%Y")}}</td>
+              <td>{{ "{:10.2f}".format(r.price) }} €</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+    </div>
+  </div>
+</div>
+
+<div class="panel-group">
+  <div class="panel panel-primary">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse_future">Future Releases</a>
+      </h4>
+    </div>
+    <div id="collapse_future" class="panel-collapse collapse in">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Volume</th>
+              <th></th>
+              <th>Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in RELEASE_DICT['future'] %}
+            <tr class="info">
+              <td class='fixed_c'><strong>{{r.manga.title}}</strong></td>
+              <td>{{r.volume}}</td>
+              <td>{{r.release_date.strftime("%d/%m/%Y")}}</td>
+              <td>{{ "{:10.2f}".format(r.price) }} €</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+    </div>
+  </div>
+</div>
+
+
+
+
+{% endblock %}

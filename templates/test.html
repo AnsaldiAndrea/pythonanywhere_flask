@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% block head %}
+
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+{% endblock %}
+
+{% block body %}
+
+<button onclick="document.getElementById('id01').style.display='block'"
+class="w3-button">Open Modal</button>
+
+<!-- The Modal -->
+<div id="id01" class="w3-modal">
+    <div class="w3-modal-content">
+        <div class="w3-container">
+          <!--<span onclick="document.getElementById('id01').style.display='none'" class="w3-button w3-display-topright">&times;</span>-->
+          <image class="w3-border w3-padding" src="http://comics.panini.it/store/media/catalog/product/cache/80/image/9df78eab33525d08d6e5fb8d27136e95/M/M/MMAFI036_0.jpg"></image>
+        </div>
+    </div>
+</div>
+{% endblock %}

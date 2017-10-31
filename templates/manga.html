@@ -1,0 +1,141 @@
+{% extends "layout.html" %}
+
+{% block head %}
+    <script type="text/javascript">
+        $(function() {
+            $("a#interested").click(function() {
+                var action = $(this).attr("data-action");
+                var button = $(this);
+                var parent = $(this).parent().parent();
+                var icon = $(":first-child",this);
+                var data = {"manga_id":$(this).attr("name")};
+                console.log(JSON.stringify(data));
+                $.ajax({
+                    type : "POST",
+                    url : $SCRIPT_ROOT + "/manga/" + action,
+                    data : JSON.stringify(data),
+                    contentType: 'application/json;charset=UTF-8',
+                    success: function(response){
+                        console.log(response)
+                        resp_dict = $.parseJSON(response)
+                        if(action=="delete"){
+                          parent.removeClass("info");
+                          button.removeClass("btn-primary");
+                          button.addClass("btn-default");
+                          button.attr("data-action", "add");
+                          icon.removeClass('glyphicon-star');
+                          icon.addClass("glyphicon-star-empty");
+                        } else {
+                          parent.addClass("info");
+                          button.removeClass("btn-default");
+                          button.addClass("btn-primary");
+                          button.attr("data-action","delete");
+                          icon.removeClass('glyphicon-star-empty');
+                          icon.addClass("glyphicon-star");
+                        }
+                    },
+                    error: function(error){
+                    	console.log(error);
+                    }
+                });
+            });
+        });
+    </script>
+
+    <script  type="text/javascript">
+    $(function() {
+        $("#search").on("keyup", function() {
+            var value = $(this).val();
+            console.log(value);
+            $("table tr").each(function(index) {
+                if (index != 0) {
+                    var id = $(this).find("td:first").text();
+                    if (id.toLowerCase().indexOf(value.toLowerCase()) != 0) {
+                        $(this).hide();
+                    }
+                    else {
+                        $(this).show();
+                    }
+                }
+            });
+        });
+    });
+    </script>
+
+    <style>
+        .fixed_c {width:70%}
+
+        .table > tbody > tr > td {
+            vertical-align: middle;
+        }
+    </style>
+
+
+{% endblock %}
+
+{% block body %}
+
+<h2>Manga</h2>
+<p>List of all available Manga</p>
+<hr>
+<div class="panel">
+    <div class="row container">
+            <div class="input-group">
+                <input type="search" class="form-control" placeholder="Search..." id="search"/>
+                <div class="input-group-btn">
+                    <button class="btn btn-primary" type="submit">
+                        <span class="glyphicon glyphicon-search"></span>
+                    </button>
+                </div>
+            </div>
+    </div>
+
+</div>
+
+<div class='panel panel-primary'>
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Publisher</th>
+          {% if session.logged_in %}
+          <th></th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in MANGA_LIST %}
+            {% if session.logged_in and m.id in USER_LIST %}
+            <tr class='info' id={{m.id}}>
+              <td><a href="\manga\{{m.id}}"><strong>{{m.title}}</strong></a></td>
+              <td>{{m.publisher.value}}</td>
+              <td>
+                  <a href="javascript:void(0)" class="btn btn-primary pull-right btn-sm" id='interested' name='{{m.id}}' data-action="delete">
+                    <span class='glyphicon glyphicon-star'></span>
+                  </a>
+              </td>
+            </tr>
+            {% elif session.logged_in and not m.id in USER_LIST %}
+            <tr id={{m.id}}>
+              <td><a href="\manga\{{m.id}}"><strong>{{m.title}}</strong></a></td>
+              <td>{{m.publisher.value}}</td>
+              <td>
+                  <a href="javascript:void(0)" class="btn btn-default pull-right btn-sm" id='interested' name='{{m.id}}' data-action="add">
+                    <span class='glyphicon glyphicon-star-empty'></span>
+                  </a>
+              </td>
+            </tr>
+            {% else %}
+            <tr id={{m.id}}>
+              <td><a href="\manga\{{m.id}}"><strong>{{m.title}}</strong></a></td>
+              <td>{{m.publisher.value}}</td>
+            </tr>
+            {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+
+</div>
+
+
+{% endblock %}

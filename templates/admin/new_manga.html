@@ -1,0 +1,103 @@
+{% extends 'layout.html' %}
+
+{% block head %}
+
+    <script type="text/javascript">
+        $(function() {
+            $("#extract").click(function() {
+                var data = {"text":$("#text").val()};
+                console.log(JSON.stringify(data));
+                $.ajax({
+                    type : "POST",
+                    url : $SCRIPT_ROOT + "/admin/new_manga/extract",
+                    data : JSON.stringify(data),
+                    contentType: 'application/json;charset=UTF-8',
+                    success: function(response){
+                        //console.log(response)
+                        data = $.parseJSON(response)
+                        //console.log(data)
+                        if (data['success']) {
+                            console.log(data);
+                            $('#id').val(data['id']);
+                            $('#title').val(data['title']);
+                            $('#volumes').val(data['volumes']);
+                            $('#released').val(data['released']);
+                            $('#publisher').val(data['publisher']).change();
+                            $('#status').val(data['status']).change();
+                            $('#author').val(data['author']);
+                            $('#artist').val(data['artist']);
+                            $('#complete').val(data['complete']).change();
+                            $('#cover').val(data['cover']);
+                            var alert = $("#alert");
+                            alert.attr("style","display: none;");
+                        }
+                        else {
+                            console.log('error')
+                            var alert = $("#alert");
+                            alert.text(data["message"]);
+                            alert.removeAttr("style");
+                        }
+                    },
+                    error: function(error){
+                    	console.log(error);
+                    }
+                });
+            });
+        });
+    </script>
+
+{% endblock %}
+
+{% block body %}
+  <h1>Add New Manga to Database</h1>
+  {% from "_formhelpers.html" import render_field %}
+  <hr>
+  <div class="row">
+      <div class="col-md-6">
+        <form method="POST" action="">
+            <div class="form-group">
+              {{render_field(form.id, class_="form-control")}}
+            </div>
+            <div class="form-group">
+              {{render_field(form.title, class_="form-control")}}
+            </div>
+            <div class="form-group">
+              {{render_field(form.volumes, class_="form-control")}}
+            </div>
+            <div class="form-group">
+              {{render_field(form.released, class_="form-control")}}
+            </div>
+            <div class="form-group">
+              {{render_field(form.publisher, class_="form-control")}}
+            </div>
+            <div class="form-group">
+              {{render_field(form.status, class_="form-control")}}
+            </div>
+            <div class="form-group">
+              {{render_field(form.author, class_="form-control")}}
+            </div>
+            <div class="form-group">
+              {{render_field(form.artist, class_="form-control")}}
+            </div>
+            <div class="form-group">
+              {{render_field(form.complete, class_="form-control")}}
+            </div>
+            <div class="form-group">
+              {{render_field(form.cover, class_="form-control")}}
+            </div>
+            <p><input type="submit" class="btn btn-primary" value="Submit"></p>
+        </form>
+      </div>
+      <div class="col-md-6">
+        <h3>Populate fields from csv text</h3>
+        <div id="alert" class="alert alert-danger" style="display: none;">
+        </div>
+        <div class="form-group">
+          <label for="text">Text</label>
+          <textarea class="form-control" rows="5" id="text"></textarea>
+        </div>
+        <p><input id="extract" type="submit" class="btn btn-primary" value="Extract"></p>
+      </div>
+  </div>
+
+  {% endblock %}

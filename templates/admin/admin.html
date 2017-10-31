@@ -1,0 +1,29 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+  <h1>Welcome Admin: {{session.username}}</h1>
+
+  <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Publisher</th>
+          <th>Release Date</th>
+          <th>Price</th>
+          <th>Create</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in unknown %}
+            <tr class='info'>
+                <td>{{u.title}}</td>
+                <td>{{u.publisher}}</td>
+                <td>{{u.release_date}}</td>
+                <td>{{u.price}}</td>
+                <td>
+                    <a class="btn">Add Manga</a>
+                </td>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

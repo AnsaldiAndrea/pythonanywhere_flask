@@ -1,0 +1,239 @@
+{% extends "layout.html" %}
+
+{% block head %}
+
+
+<style>
+    @media (max-width: 1080px) and (orientation:portrait){
+        .fixed_c {width:45%}
+    }
+    @media (max-width: 1080px) and (orientation:landscape){
+        .fixed_c {width:60%}
+    }
+    @media (min-width: 1080px) {
+        .fixed_c {width:60%}
+    }
+
+    @media (min-width: 1080px){
+        .modal-dialog{
+            position: relative;
+            display: table; /* This is important */
+            overflow-y: auto;
+            overflow-x: auto;
+            width: auto;
+            max-width: 350px;
+        }
+    }
+
+    @media (max-width: 1080px){
+        .modal-sm{
+            max-width: 350px;
+        }
+    }
+
+    .mmodal-header{
+        padding-left: 10px;
+        padding-right: 10px;
+        border-bottom: 1px solid #e5e5e5;
+        text-align: center;
+    }
+
+
+    .table > tbody > tr > td {
+        vertical-align: middle;
+    }
+
+</style>
+
+<script type="text/javascript">
+    $(function() {
+        $("a#buy").click(function() {
+            var row = $(this).parent().parent();
+            var data = {"manga_id":$(this).attr("data-id"), "volume":$(this).attr("data-vol")};
+            console.log(JSON.stringify(data));
+            $.ajax({
+                type : "POST",
+                url : $SCRIPT_ROOT + "/buy_volume",
+                data : JSON.stringify(data),
+                contentType: 'application/json;charset=UTF-8',
+                success: function(response){
+                    console.log(response)
+                    var tbody = row.parent();
+                    row.remove();
+                    calculate_prev();
+                    calculate_this();
+                    calculate_next();
+                    calculate_future();
+                    if(tbody.find('tr').length==1) {
+                        var master = tbody.parent().parent();
+                        tbody.parent().remove();
+                        master.append("<div class='panel-body'>Empty</div>");
+                    }
+                },
+                error: function(error){
+                	console.log(error);
+                }
+            });
+        });
+    });
+
+
+    function calculate_prev() {
+        console.log("calculate_prev")
+        var sum=0;
+        $(".price_prev").each(function() {
+            var value = $(this).text().replace(" €",'')
+            if(!isNaN(value) && value.length != 0) {
+                sum += parseFloat(value);
+            }
+        })
+        $("#sum_prev").text(sum.toFixed(2) + " €");
+    }
+    function calculate_this() {
+        console.log("calculate_this")
+        var sum=0;
+        $(".price_this").each(function() {
+            var value = $(this).text().replace(" €",'')
+            if(!isNaN(value) && value.length != 0) {
+                sum += parseFloat(value);
+            }
+        })
+        $("#sum_this").text(sum.toFixed(2) + " €");
+    }
+    function calculate_next() {
+        console.log("calculate_next")
+        var sum=0;
+        $(".price_next").each(function() {
+            var value = $(this).text().replace(" €",'')
+            if(!isNaN(value) && value.length != 0) {
+                sum += parseFloat(value);
+            }
+        })
+        $("#sum_next").text(sum.toFixed(2) + " €");
+    }
+    function calculate_future() {
+        console.log("calculate_future")
+        var sum=0;
+        $(".price_future").each(function() {
+            var value = $(this).text().replace(" €",'')
+            if(!isNaN(value) && value.length != 0) {
+                sum += parseFloat(value);
+            }
+        })
+        $("#sum_future").text(sum.toFixed(2) + " €");
+    }
+    $(function() {
+        calculate_prev();
+        calculate_this();
+        calculate_next();
+        calculate_future();
+    });
+
+/*
+    $(function() {
+        function reposition() {
+            var modal = $(this),
+            dialog = modal.find('.modal-dialog');
+            modal.css('display', 'block');
+
+            // Dividing by two centers the modal exactly, but dividing by three
+            // or four works better for larger screens.
+            dialog.css("margin-top", Math.max(0, ($(window).height() - dialog.height()) / 2));
+        }
+        // Reposition when a modal is shown
+        $('.modal').on('show.bs.modal', reposition);
+    });
+*/
+
+    $('.modal').on('shown.bs.modal', function (e) {
+
+    })
+</script>
+
+{% endblock %}
+
+
+{% block body %}
+
+
+<h2>Releases</h2>
+<p>List of all available Releases</p>
+<hr>
+
+
+{% for key,value in RELEASE_DICT.items() %}
+<div class="panel-group">
+  <div class="panel panel-primary">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse_{{key}}">{{HEADER[key]}}</a>
+      </h4>
+    </div>
+    <div id="collapse_{{key}}" class="panel-collapse collapse in">
+        {% if value %}
+        <table class="table table_{{key}} table-condensed">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th></th>
+              <th>Price</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in value %}
+            <tr class="info">
+              <td class='fixed_c'>
+                <a href="#cover_{{r.manga_id}}_{{r.volume}}_{{r.release_date.strftime('%d_%m_%Y')}}" data-toggle="modal" data-target="#cover_{{r.manga_id}}_{{r.volume}}_{{r.release_date.strftime('%d_%m_%Y')}}"><strong>{{r.manga.title}} {{r.volume}}</strong></a>
+              </td>
+              <td>{{r.release_date.strftime("%d/%m/%Y")}}</td>
+              <div id="cover_{{r.manga_id}}_{{r.volume}}_{{r.release_date.strftime('%d_%m_%Y')}}" class="modal fade" role="dialog">
+                  <div class="modal-dialog modal-sm">
+                    <!-- Modal content-->
+                    <div class="modal-content">
+                        <div class="mmodal-header">
+                          <button type="button" class="close" data-dismiss="modal">&times;</button>
+                          <h5><strong>{{r.manga.title}} {{r.volume}}</strong></h4>
+                        </div>
+                      <div class="modal-body">
+                        <image src="{{r.cover}}" class="img-thumbnail img-responsive center-block" ></image>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+
+              <td class='price_{{key}}'>{{ "{:10.2f}".format(r.price) }} €</td>
+              <td>
+                  {% if session.logged_in and key not in ['next','future'] %}
+                  <a id="buy" class="btn btn-primary btn-sm" data-id="{{r.manga_id}}" data-vol="{{r.volume}}">
+                    <span class='glyphicon glyphicon-shopping-cart'></span>
+                  </a>
+                  {% elif session.logged_in %}
+                  <a id="buy" class="btn btn-primary btn-sm disabled" data-id="{{r.manga_id}}" data-vol="{{r.volume}}">
+                    <span class='glyphicon glyphicon-shopping-cart'></span>
+                  </a>
+                  {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+            <tr>
+                <td></td>
+                <td></td>
+                <td id='sum_{{key}}'>0.00 €</td>
+                <td></td>
+            </tr>
+          </tbody>
+        </table>
+        {% else %}
+        <div class="panel-body">Empty</div>
+        {% endif %}
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+

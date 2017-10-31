@@ -1,0 +1,13 @@
+{% extends 'layout.html' %}
+
+
+{% block body %}
+  <h1>Add New Release to Database</h1>
+  {% from "_formhelpers.html" import render_field, render_dropdown %}
+  <form method="POST" action="">
+    <div class="form-group">
+      {{render_dropdown(form.test, class_="form-control", list="titles", datalist=title_list, list_name="titles")}}
+    </div>
+    <p><input type="submit" class="btn btn-primary" value="Submit"></p>
+  </form>
+{% endblock %}
