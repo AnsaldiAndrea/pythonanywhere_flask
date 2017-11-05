@@ -87,9 +87,9 @@
 
     function calculate_all() {
         calculate_price($(".price_prev"),$("#sum_prev"));
-        calculate_price($(".price_this"),$(".sum_this"));
-        calculate_price($(".price_next"),$(".sum_next"));
-        calculate_price($(".price_future"),$(".sum_future"));
+        calculate_price($(".price_this"),$("#sum_this"));
+        calculate_price($(".price_next"),$("#sum_next"));
+        calculate_price($(".price_future"),$("#sum_future"));
     }
     $(function() {
         calculate_all()

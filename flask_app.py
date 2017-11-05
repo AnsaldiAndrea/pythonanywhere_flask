@@ -420,7 +420,7 @@ stat = {
 
 @app.route("/admin/new_manga", methods=['GET', 'POST'])
 @is_admin
-def create_new_manga():
+def admin_new_manga():
     form = NewMangaForm(request.form)
     if request.method == 'POST' and form.validate():
         id = request.form['id']
@@ -450,7 +450,7 @@ def create_new_manga():
 
 @app.route("/admin/new_release", methods=['GET', 'POST'])
 @is_admin
-def create_new_release():
+def admin_new_release():
     form = NewReleaseForm(request.form)
     if request.method == 'POST':
         pass
