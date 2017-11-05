@@ -1,0 +1,32 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+
+  <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Publisher</th>
+          <th>Release Date</th>
+          <th>Price</th>
+          <th></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in unknown %}
+            <tr class='info'>
+                <td>{{u.title}}</td>
+                <td>{{u.publisher}}</td>
+                <td>{{u.release_date.strftime('%d/%m/%Y')}}</td>
+                <td>{{u.price}}</td>
+                <td>
+                    <a class="btn" href="{{ url_for('new_release', title=u.title,subtitle=u.subtitle,release_date=u.release_date.strftime('%d/%m/%Y'),price=u.price,cover=u.cover) }}">Edit</a>
+                </td>
+                <td>
+                    <a class="btn" href="{{ url_for('new_manga', title=u.title,publisher=u.publisher) }}">Add Manga</a>
+                </td>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
