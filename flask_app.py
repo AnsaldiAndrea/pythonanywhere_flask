@@ -457,7 +457,7 @@ def admin_new_release():
     else:
         q = Manga.query.all()
         title_list = [x.title for x in q]
-        title_dict = {x.title: x.manga_id for x in q}
+        title_dict = {x.title: x.id for x in q}
         title = request.args.get('title', '')
         subtitle = request.args.get('subtitle', '')
         release_date = request.args.get('release_date', '')
