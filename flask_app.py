@@ -457,7 +457,14 @@ def admin_new_release():
     else:
         q = Manga.query.all()
         title_list = [x.title for x in q]
-        return render_template('admin/new_release.html', form=form, title_list=title_list)
+        title_dict = {x.title: x.manga_id for x in q}
+        title = request.args.get('title', '')
+        subtitle = request.args.get('subtitle', '')
+        release_date = request.args.get('release_date', '')
+        price = request.args.get('price', '')
+        cover = request.args.get('cover', '')
+        return render_template('admin/new_release.html', form=form, title_list=title_list, title_dict=title_dict,
+                               title=title, subtitle=subtitle, release_date=release_date, price=price, cover=cover)
 
 
 @app.route("/admin/new_manga/extract", methods=["POST"])
