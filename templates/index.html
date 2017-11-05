@@ -6,8 +6,8 @@
     <h1>Welcome to MangaManager</h1>
     <p class="lead">This application is built on the Python Flask framework</p>
     {% if session.logged_in == NULL %}
-      <a href="{{ url_for("/register") }}" class="btn btn-primary btn-lg"><span class="glyphicon glyphicon-user"></span> Register</a>
-      <a href="{{ url_for("/login") }}" class="btn btn-success btn-lg"><span class="glyphicon glyphicon-log-in"></span> Login</a>
+      <a href="{{ url_for("register") }}" class="btn btn-primary btn-lg"><span class="glyphicon glyphicon-user"></span> Register</a>
+      <a href="{{ url_for("login") }}" class="btn btn-success btn-lg"><span class="glyphicon glyphicon-log-in"></span> Login</a>
     {% endif %}
   </div>
 
