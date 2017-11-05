@@ -21,10 +21,10 @@
                 <td>{{u.release_date.strftime('%d/%m/%Y')}}</td>
                 <td>{{u.price}}</td>
                 <td>
-                    <a class="btn" href="{{ url_for('new_release', title=u.title,subtitle=u.subtitle,release_date=u.release_date.strftime('%d/%m/%Y'),price=u.price,cover=u.cover) }}">Edit</a>
+                    <a class="btn" href="{{ url_for('admin_new_release', title=u.title,subtitle=u.subtitle,release_date=u.release_date.strftime('%d/%m/%Y'),price=u.price,cover=u.cover) }}">Edit</a>
                 </td>
                 <td>
-                    <a class="btn" href="{{ url_for('new_manga', title=u.title,publisher=u.publisher) }}">Add Manga</a>
+                    <a class="btn" href="{{ url_for('admin_new_manga', title=u.title,publisher=u.publisher) }}">Add Manga</a>
                 </td>
         {% endfor %}
         </tbody>
