@@ -132,13 +132,13 @@
             </tr>
           </thead>
           <tbody>
-            {% for i,r in enumerate(value) %}
+            {% for r in value %}
             <tr class="info">
               <td class='fixed_c'>
-                <a href="#cover_{{ i }}" data-toggle="modal" data-target="#cover_{{r.manga_id}}_{{r.volume}}_{{r.release_date.strftime('%d_%m_%Y')}}"><strong>{{r.manga.title}} {{r.volume}}</strong></a>
+                <a href="#cover_{{ loop.index }}" data-toggle="modal" data-target="#cover_{{r.manga_id}}_{{r.volume}}_{{r.release_date.strftime('%d_%m_%Y')}}"><strong>{{r.manga.title}} {{r.volume}}</strong></a>
               </td>
               <td>{{r.release_date.strftime("%d/%m/%Y")}}</td>
-              <div id="cover_{{ i }}" class="modal fade" role="dialog">
+              <div id="cover_{{ loop.index }}" class="modal fade" role="dialog">
                   <div class="modal-dialog modal-sm">
                     <!-- Modal content-->
                     <div class="modal-content">
