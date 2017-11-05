@@ -8,7 +8,7 @@ from passlib.hash import sha256_crypt
 import os
 from functools import wraps
 from forms import RegisterForm, NewMangaForm, NewReleaseForm
-import csvstring
+from mypackage import csvstring
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
@@ -31,7 +31,7 @@ db = SQLAlchemy(app)
 class Manga(db.Model):
     __tablename__ = "manga"
 
-    def __init__(self,id,title,volumes,released,publisher,status,authors,artists,complete,cover):
+    def __init__(self, id, title, volumes, released, publisher, status, authors, artists, complete, cover):
         self.id = id
         self.title = title
         self.volumes = volumes
@@ -54,6 +54,7 @@ class Manga(db.Model):
     complete = db.Column(db.Boolean(), default=0)
     cover = db.Column(db.Text(), nullable=False)
 
+
 class Releases(db.Model):
     __tablename__ = "releases"
 
@@ -64,6 +65,7 @@ class Releases(db.Model):
     release_date = db.Column(db.DateTime, nullable=False, primary_key=True)
     price = db.Column(db.Float(), nullable=False, default=0)
     cover = db.Column(db.Text())
+
 
 class Collection(db.Model):
     __tablename__ = "collection"
@@ -105,6 +107,7 @@ class UserManga(db.Model):
     manga = db.relationship("Manga", backref=db.backref("usermanga", uselist=False))
     visibility = db.Column(db.Boolean(), nullable=False, default=1)
 
+
 class UserCollection(db.Model):
     __tablename__ = "usercollection"
 
@@ -118,6 +121,7 @@ class UserCollection(db.Model):
     manga = db.relationship("Manga", backref=db.backref("usercollection", uselist=False))
     volume = db.Column(db.Integer, nullable=False, primary_key=True)
 
+
 class Unknown(db.Model):
     __tablename__ = "unknown"
 
@@ -128,6 +132,7 @@ class Unknown(db.Model):
     price = db.Column(db.Float(), nullable=False, default=0)
     cover = db.Column(db.Text())
 
+
 @app.route("/")
 def index():
     try:
@@ -135,17 +140,18 @@ def index():
     except Exception as e:
         return type(e)
 
+
 @app.errorhandler(404)
 def page_not_found(error):
-    return render_template('error_404.html'),404
+    return render_template('error_404.html'), 404
+
 
 @app.errorhandler(500)
 def internal_server_error(error):
-    return render_template('error_500.html'),500
+    return render_template('error_500.html'), 500
 
 
-
-@app.route("/register", methods=['GET','POST'])
+@app.route("/register", methods=['GET', 'POST'])
 def register():
     form = RegisterForm(request.form)
     if request.method == 'POST' and form.validate():
@@ -154,7 +160,7 @@ def register():
         username = form.username.data
         password = str(sha256_crypt.encrypt(form.password.data))
 
-        new_user = Users(name,email,username,password)
+        new_user = Users(name, email, username, password)
         try:
             db.session.add(new_user)
             db.session.commit()
@@ -164,31 +170,33 @@ def register():
             flash('Username is already taken', 'danger')
     return render_template('register.html', form=form)
 
-@app.route("/login", methods=['GET','POST'])
+
+@app.route("/login", methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         if 'logged_in' in session:
-            flash('You are already logged in as: {}'.format(session['username']),'danger')
+            flash('You are already logged in as: {}'.format(session['username']), 'danger')
             return redirect(url_for('dashboard'))
         username = request.form['username']
         password_p = request.form['password']
 
-        q = Users.query.filter(Users.username==username).first()
+        q = Users.query.filter(Users.username == username).first()
         if q is None:
             flash('Username not found', 'danger')
         else:
-            if sha256_crypt.verify(password_p,q.password):
-                session['logged_in']=True
-                session['username']=username
-                session['user_id']=q.id
+            if sha256_crypt.verify(password_p, q.password):
+                session['logged_in'] = True
+                session['username'] = username
+                session['user_id'] = q.id
                 if q.admin:
-                    session['admin']=1
+                    session['admin'] = 1
                 flash('Logged in', 'success')
                 return redirect(url_for('dashboard'))
             else:
-                flash('Invalid password','danger')
+                flash('Invalid password', 'danger')
 
     return render_template('login.html')
+
 
 # Check if user logged in
 def is_logged_in(f):
@@ -199,7 +207,9 @@ def is_logged_in(f):
         else:
             flash('Unauthorized, Please login', 'danger')
             return redirect(url_for('login'))
+
     return wrap
+
 
 def is_admin(f):
     @wraps(f)
@@ -212,6 +222,7 @@ def is_admin(f):
         else:
             flash('Unauthorized, Please login', 'danger')
             return redirect(url_for('login'))
+
     return wrap
 
 
@@ -219,6 +230,7 @@ def is_admin(f):
 @is_logged_in
 def dashboard():
     return render_template('dashboard.html')
+
 
 @app.route("/logout")
 @is_logged_in
@@ -230,54 +242,49 @@ def logout():
 
 @app.route("/manga")
 def manga():
-    #try:
-        m = Manga.query.order_by(Manga.title).all()
-        if session.get('logged_in', False):
-            u = UserManga.query.filter_by(user_id=session['user_id']).all()
-            ul = [x.manga_id for x in u]
-            return render_template('manga.html', MANGA_LIST=m, USER_LIST=ul)
-        return render_template('manga.html', MANGA_LIST=m)
-    #except Exception as e:
+    # try:
+    m = Manga.query.order_by(Manga.title).all()
+    if session.get('logged_in', False):
+        u = UserManga.query.filter_by(user_id=session['user_id']).all()
+        ul = [x.manga_id for x in u]
+        return render_template('manga.html', MANGA_LIST=m, USER_LIST=ul)
+    return render_template('manga.html', MANGA_LIST=m)
+    # except Exception as e:
     #    return str(e)
+
 
 @app.route("/manga/<string:manga_id>")
 def item(manga_id):
     user_collection = []
     try:
-        manga = Manga.query.filter_by(id=manga_id).first()
+        m = Manga.query.filter_by(id=manga_id).first()
         collection = Collection.query.filter_by(manga_id=manga_id).join(Manga).order_by(Collection.volume).all()
-        releases = Releases.query.filter_by(manga_id=manga_id).join(Manga).order_by(Releases.release_date).all()
+        release_list = Releases.query.filter_by(manga_id=manga_id).join(Manga).order_by(Releases.release_date).all()
         if session.get('logged_in', False):
-            user_c_raw = UserCollection.query.filter_by(user_id=session['user_id'],manga_id=manga_id).all()
-            user_collection = [(c.manga_id,c.volume) for c in user_c_raw]
-        if manga is not None:
-            return render_template('item/manga.html', MANGA=manga, COLLECTION=collection, RELEASE_LIST = releases, USER_COLLECTION=user_collection)
+            user_c_raw = UserCollection.query.filter_by(user_id=session['user_id'], manga_id=manga_id).all()
+            user_collection = [(c.manga_id, c.volume) for c in user_c_raw]
+        if m is not None:
+            return render_template('item/manga.html', MANGA=m, COLLECTION=collection, RELEASE_LIST=release_list,
+                                   USER_COLLECTION=user_collection)
         else:
             return abort(404)
     except Exception as e:
         return str(e)
 
-def m_delete(manga_id):
-    return 'METHOD = DELETE, MANGA_ID = ',manga_id
-def m_hide(manga_id):
-    return 'METHOD = HIDE, MANGA_ID = ',manga_id
-def m_show(manga_id):
-    return 'METHOD = SHOW, MANGA_ID = ',manga_id
-
-actions_m = {'delete':m_delete,'hide':m_hide,'show':m_show}
 
 @app.route("/manga/add", methods=["POST"])
 @is_logged_in
 def add_manga():
     manga_id = request.json.get('manga_id')
     user_id = session['user_id']
-    um = UserManga(user_id,manga_id)
+    um = UserManga(user_id, manga_id)
     try:
         db.session.add(um)
         db.session.commit()
-        return json.dumps({'action':'add','status':'OK', 'manga_id':manga_id})
+        return json.dumps({'action': 'add', 'status': 'OK', 'manga_id': manga_id})
     except Exception as e:
-        return json.dumps({'action':'add', 'status':'ERROR', 'error':str(e)})
+        return json.dumps({'action': 'add', 'status': 'ERROR', 'error': str(e)})
+
 
 @app.route("/manga/delete", methods=["POST"])
 @is_logged_in
@@ -285,12 +292,12 @@ def delete_manga():
     manga_id = request.json.get('manga_id')
     user_id = session['user_id']
     try:
-        um = UserManga.query.filter_by(user_id=user_id,manga_id=manga_id).first()
+        um = UserManga.query.filter_by(user_id=user_id, manga_id=manga_id).first()
         db.session.delete(um)
         db.session.commit()
-        return json.dumps({'action':'delete','status':'OK', 'manga_id':manga_id})
+        return json.dumps({'action': 'delete', 'status': 'OK', 'manga_id': manga_id})
     except Exception as e:
-        return json.dumps({'action':'delete', 'status':'ERROR', 'error':str(e)})
+        return json.dumps({'action': 'delete', 'status': 'ERROR', 'error': str(e)})
 
 
 @app.route("/add_volume", methods=["POST"])
@@ -298,32 +305,33 @@ def delete_manga():
 def act_volume():
     manga_id = request.json.get('manga_id')
     volume = request.json.get('volume')
-    is_buy = request.json.get('buy')=='true'
+    is_buy = request.json.get('buy') == 'true'
 
     if is_buy:
-        return delete_volume(manga_id,volume)
+        return delete_volume(manga_id, volume)
     else:
-        return add_volume(manga_id,volume)
+        return add_volume(manga_id, volume)
 
 
-def add_volume(manga_id,volume):
+def add_volume(manga_id, volume):
     try:
-        uv = UserCollection(session['user_id'],manga_id,volume)
+        uv = UserCollection(session['user_id'], manga_id, volume)
         db.session.add(uv)
         db.session.commit()
-        return json.dumps({'status':'OK', 'action':'add','manga_id':manga_id, 'volume':volume})
+        return json.dumps({'status': 'OK', 'action': 'add', 'manga_id': manga_id, 'volume': volume})
     except Exception:
-        return json.dumps({'status':'ERROR', 'action':'add', 'manga_id':manga_id, 'volume':volume})
+        return json.dumps({'status': 'ERROR', 'action': 'add', 'manga_id': manga_id, 'volume': volume})
 
 
-def delete_volume(manga_id,volume):
+def delete_volume(manga_id, volume):
     try:
-        uv = UserCollection.query.filter_by(user_id=session['user_id'],manga_id=manga_id,volume=volume).first()
+        uv = UserCollection.query.filter_by(user_id=session['user_id'], manga_id=manga_id, volume=volume).first()
         db.session.delete(uv)
         db.session.commit()
-        return json.dumps({'status':'OK', 'action':'delete', 'manga_id':manga_id, 'volume':volume})
+        return json.dumps({'status': 'OK', 'action': 'delete', 'manga_id': manga_id, 'volume': volume})
     except Exception:
-        return json.dumps({'status':'ERROR', 'action':'delete', 'manga_id':manga_id, 'volume':volume})
+        return json.dumps({'status': 'ERROR', 'action': 'delete', 'manga_id': manga_id, 'volume': volume})
+
 
 @app.route("/buy_volume", methods=["POST"])
 @is_logged_in
@@ -331,18 +339,18 @@ def buy_volume():
     manga_id = request.json.get('manga_id')
     volume = request.json.get('volume')
     try:
-        uv = UserCollection(session['user_id'],manga_id,volume)
+        uv = UserCollection(session['user_id'], manga_id, volume)
         db.session.add(uv)
         db.session.commit()
-        return json.dumps({'status':'OK','manga_id':manga_id, 'volume':volume})
+        return json.dumps({'status': 'OK', 'manga_id': manga_id, 'volume': volume})
     except Exception:
-        return json.dumps({'status':'ERROR', 'manga_id':manga_id, 'volume':volume})
+        return json.dumps({'status': 'ERROR', 'manga_id': manga_id, 'volume': volume})
 
 
 @app.route("/releases")
 def releases():
     data = Releases.query.join(Manga).order_by(Releases.release_date).all()
-    week_dict = {'prev':[], 'this':[], 'next':[], 'future':[]}
+    week_dict = {'prev': [], 'this': [], 'next': [], 'future': []}
 
     now = datetime.now()
     date_prev = now - timedelta(weeks=8)
@@ -355,35 +363,33 @@ def releases():
     user_manga = []
     if session.get('logged_in', False):
         user_c_raw = UserCollection.query.filter_by(user_id=session['user_id']).all()
-        user_collection = [(c.manga_id,c.volume) for c in user_c_raw]
+        user_collection = [(c.manga_id, c.volume) for c in user_c_raw]
         user_m_raw = UserManga.query.filter_by(user_id=session['user_id'])
         user_manga = [m.manga_id for m in user_m_raw]
 
     for r in data:
-        if((r.manga_id,r.volume) in user_collection or (user_manga and r.manga_id not in user_manga)):
+        if (r.manga_id, r.volume) in user_collection or (user_manga and r.manga_id not in user_manga):
             continue
         t_r = r.release_date.isocalendar()[:2]
-        if(t_r < t_prev):
+        if t_r < t_prev:
             continue
-        elif(t_prev <= t_r < t_now):
+        elif t_prev <= t_r < t_now:
             week_dict['prev'].append(r)
-        elif(t_r==t_now):
+        elif t_r == t_now:
             week_dict['this'].append(r)
-        elif(t_r==t_next):
+        elif t_r == t_next:
             week_dict['next'].append(r)
         else:
             week_dict['future'].append(r)
-    price_dict = {key:sum(x.price for x in value) for key,value in week_dict.items()}
-    header = {'prev':'Previous Weeks', 'this':'This Week', 'next':'Next Week', 'future':'Future Releases'}
-    return render_template('releases.html',RELEASE_DICT=week_dict, PRICE=price_dict, HEADER=header)
-
-
-
+    price_dict = {key: sum(x.price for x in value) for key, value in week_dict.items()}
+    header = {'prev': 'Previous Weeks', 'this': 'This Week', 'next': 'Next Week', 'future': 'Future Releases'}
+    return render_template('releases.html', RELEASE_DICT=week_dict, PRICE=price_dict, HEADER=header)
 
 
 @app.route("/test")
 def test_route():
     return render_template('test.html')
+
 
 @app.route("/admin")
 @is_admin
@@ -392,19 +398,27 @@ def admin_login():
     return render_template('admin/admin.html', unknown=u)
 
 
-pub = {
-        'planet':'Planet Manga',
-        'star':'StarComics',
-        'jpop':'J-POP',
-        'goen':'GOEN'
-    }
-stat = {
-        'ongoing':'Ongoing',
-        'complete':'Complete',
-        'tba':'TBA'
-    }
+@app.route("/admin/unknown")
+@is_admin
+def unknown():
+    u = Unknown.query.all()
+    return render_template('admin/unknown.html', unknown=u)
 
-@app.route("/admin/new_manga", methods=['GET','POST'])
+
+pub = {
+    'planet': 'Planet Manga',
+    'star': 'StarComics',
+    'jpop': 'J-POP',
+    'goen': 'GOEN'
+}
+stat = {
+    'ongoing': 'Ongoing',
+    'complete': 'Complete',
+    'tba': 'TBA'
+}
+
+
+@app.route("/admin/new_manga", methods=['GET', 'POST'])
 @is_admin
 def create_new_manga():
     form = NewMangaForm(request.form)
@@ -417,23 +431,24 @@ def create_new_manga():
         status = Status(stat[request.form['status']])
         author = request.form['author']
         artist = request.form['artist']
-        complete = request.form['complete']=='true'
+        complete = request.form['complete'] == 'true'
         cover = request.form['cover']
         try:
-            m = Manga(id,title,volumes,released,publisher,status,author,artist,complete,cover)
+            m = Manga(id, title, volumes, released, publisher, status, author, artist, complete, cover)
             db.session.add(m)
             db.session.commit()
             message = Markup('<strong>{}</strong> addedd successfully'.format(title))
             flash(message, 'success')
-            return render_template('admin/new_manga.html',form=form)
+            return render_template('admin/new_manga.html', form=form)
         except Exception as e:
             message = Markup('<strong>Error</strong>\nA problem occurred while adding manga')
             flash(message, 'danger')
-            return render_template('admin/new_manga.html',form=form)
+            return render_template('admin/new_manga.html', form=form)
     else:
-        return render_template('create_manga.html',form=form)
+        return render_template('admin/new_manga.html', form=form)
 
-@app.route("/admin/new_release", methods=['GET','POST'])
+
+@app.route("/admin/new_release", methods=['GET', 'POST'])
 @is_admin
 def create_new_release():
     form = NewReleaseForm(request.form)
@@ -442,9 +457,7 @@ def create_new_release():
     else:
         q = Manga.query.all()
         title_list = [x.title for x in q]
-        return render_template('admin/new_release.html',form=form, title_list=title_list)
-
-
+        return render_template('admin/new_release.html', form=form, title_list=title_list)
 
 
 @app.route("/admin/new_manga/extract", methods=["POST"])
@@ -452,19 +465,19 @@ def create_new_release():
 def extract_manga():
     text = request.json.get('text')
     try:
-        data = csvstring.csvstring_to_value(text)
-        if not len(data)==10 :
-            return json.dumps({'success':False, 'message':'Text format is incorrect'})
-        return json.dumps({'success':True,
-            'id':data[0],
-            'title':data[1],
-            'volumes':int(data[2]),
-            'released':int(data[3]),
-            'publisher': data[4] if pub[data[4]] else 'planet',
-            'status': data[5] if stat[data[5]] else 'ongoing',
-            'author':data[6],
-            'artist':data[7],
-            'complete':data[8]=='True' or data[8]=='1',
-            'cover':data[9]})
+        data = csvstring.csvstring_to_values(text)
+        if not len(data) == 10:
+            return json.dumps({'success': False, 'message': 'Text format is incorrect'})
+        return json.dumps({'success': True,
+                           'id': data[0],
+                           'title': data[1],
+                           'volumes': int(data[2]),
+                           'released': int(data[3]),
+                           'publisher': data[4] if pub[data[4]] else 'planet',
+                           'status': data[5] if stat[data[5]] else 'ongoing',
+                           'author': data[6],
+                           'artist': data[7],
+                           'complete': data[8] == 'True' or data[8] == '1',
+                           'cover': data[9]})
     except Exception as e:
-        return json.dumps({'success':False, 'message':str(e)})
+        return json.dumps({'success': False, 'message': str(e)})

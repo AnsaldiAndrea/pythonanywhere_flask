@@ -16,9 +16,9 @@
                     data : JSON.stringify(data),
                     contentType: 'application/json;charset=UTF-8',
                     success: function(response){
-                        console.log(response)
-                        resp_dict = $.parseJSON(response)
-                        if(action=="delete"){
+                        console.log(response);
+                        var resp_dict = JSON.parse(response);
+                        if(action==="delete"){
                           parent.removeClass("info");
                           button.removeClass("btn-primary");
                           button.addClass("btn-default");
@@ -48,9 +48,9 @@
             var value = $(this).val();
             console.log(value);
             $("table tr").each(function(index) {
-                if (index != 0) {
+                if (index !== 0) {
                     var id = $(this).find("td:first").text();
-                    if (id.toLowerCase().indexOf(value.toLowerCase()) != 0) {
+                    if (id.toLowerCase().indexOf(value.toLowerCase()) !== 0) {
                         $(this).hide();
                     }
                     else {
@@ -107,7 +107,7 @@
         {% for m in MANGA_LIST %}
             {% if session.logged_in and m.id in USER_LIST %}
             <tr class='info' id={{m.id}}>
-              <td><a href="\manga\{{m.id}}"><strong>{{m.title}}</strong></a></td>
+              <td><a href="{{ url_for("/manga", manga_id=m.id) }}"><strong>{{m.title}}</strong></a></td>
               <td>{{m.publisher.value}}</td>
               <td>
                   <a href="javascript:void(0)" class="btn btn-primary pull-right btn-sm" id='interested' name='{{m.id}}' data-action="delete">
@@ -117,7 +117,7 @@
             </tr>
             {% elif session.logged_in and not m.id in USER_LIST %}
             <tr id={{m.id}}>
-              <td><a href="\manga\{{m.id}}"><strong>{{m.title}}</strong></a></td>
+              <td><a href="{{ url_for("/manga", manga_id=m.id) }}"><strong>{{m.title}}</strong></a></td>
               <td>{{m.publisher.value}}</td>
               <td>
                   <a href="javascript:void(0)" class="btn btn-default pull-right btn-sm" id='interested' name='{{m.id}}' data-action="add">
@@ -127,7 +127,7 @@
             </tr>
             {% else %}
             <tr id={{m.id}}>
-              <td><a href="\manga\{{m.id}}"><strong>{{m.title}}</strong></a></td>
+              <td><a href="{{ url_for("/manga", manga_id=m.id) }}"><strong>{{m.title}}</strong></a></td>
               <td>{{m.publisher.value}}</td>
             </tr>
             {% endif %}

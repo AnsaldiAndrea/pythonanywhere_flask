@@ -57,14 +57,11 @@
                 data : JSON.stringify(data),
                 contentType: 'application/json;charset=UTF-8',
                 success: function(response){
-                    console.log(response)
+                    console.log(response);
                     var tbody = row.parent();
                     row.remove();
-                    calculate_prev();
-                    calculate_this();
-                    calculate_next();
-                    calculate_future();
-                    if(tbody.find('tr').length==1) {
+                    calculate_all();
+                    if(tbody.find('tr').length===1) {
                         var master = tbody.parent().parent();
                         tbody.parent().remove();
                         master.append("<div class='panel-body'>Empty</div>");
@@ -77,73 +74,27 @@
         });
     });
 
+    function calculate_price(source,destination) {
+        var sum=0;
+        source.each(function() {
+            var value = parseFloat($(this).text());
+            if(!isNaN(value)) {
+                sum += parseFloat(value);
+            }
+        });
+        destination.text(sum.toFixed(2) + " €");
+    }
 
-    function calculate_prev() {
-        console.log("calculate_prev")
-        var sum=0;
-        $(".price_prev").each(function() {
-            var value = $(this).text().replace(" €",'')
-            if(!isNaN(value) && value.length != 0) {
-                sum += parseFloat(value);
-            }
-        })
-        $("#sum_prev").text(sum.toFixed(2) + " €");
-    }
-    function calculate_this() {
-        console.log("calculate_this")
-        var sum=0;
-        $(".price_this").each(function() {
-            var value = $(this).text().replace(" €",'')
-            if(!isNaN(value) && value.length != 0) {
-                sum += parseFloat(value);
-            }
-        })
-        $("#sum_this").text(sum.toFixed(2) + " €");
-    }
-    function calculate_next() {
-        console.log("calculate_next")
-        var sum=0;
-        $(".price_next").each(function() {
-            var value = $(this).text().replace(" €",'')
-            if(!isNaN(value) && value.length != 0) {
-                sum += parseFloat(value);
-            }
-        })
-        $("#sum_next").text(sum.toFixed(2) + " €");
-    }
-    function calculate_future() {
-        console.log("calculate_future")
-        var sum=0;
-        $(".price_future").each(function() {
-            var value = $(this).text().replace(" €",'')
-            if(!isNaN(value) && value.length != 0) {
-                sum += parseFloat(value);
-            }
-        })
-        $("#sum_future").text(sum.toFixed(2) + " €");
+    function calculate_all() {
+        calculate_price($(".price_prev"),$("#sum_prev"));
+        calculate_price($(".price_this"),$(".sum_this"));
+        calculate_price($(".price_next"),$(".sum_next"));
+        calculate_price($(".price_future"),$(".sum_future"));
     }
     $(function() {
-        calculate_prev();
-        calculate_this();
-        calculate_next();
-        calculate_future();
+        calculate_all()
     });
 
-/*
-    $(function() {
-        function reposition() {
-            var modal = $(this),
-            dialog = modal.find('.modal-dialog');
-            modal.css('display', 'block');
-
-            // Dividing by two centers the modal exactly, but dividing by three
-            // or four works better for larger screens.
-            dialog.css("margin-top", Math.max(0, ($(window).height() - dialog.height()) / 2));
-        }
-        // Reposition when a modal is shown
-        $('.modal').on('show.bs.modal', reposition);
-    });
-*/
 
     $('.modal').on('shown.bs.modal', function (e) {
 
@@ -181,22 +132,22 @@
             </tr>
           </thead>
           <tbody>
-            {% for r in value %}
+            {% for i,r in enumerate(value) %}
             <tr class="info">
               <td class='fixed_c'>
-                <a href="#cover_{{r.manga_id}}_{{r.volume}}_{{r.release_date.strftime('%d_%m_%Y')}}" data-toggle="modal" data-target="#cover_{{r.manga_id}}_{{r.volume}}_{{r.release_date.strftime('%d_%m_%Y')}}"><strong>{{r.manga.title}} {{r.volume}}</strong></a>
+                <a href="#cover_{{ i }}" data-toggle="modal" data-target="#cover_{{r.manga_id}}_{{r.volume}}_{{r.release_date.strftime('%d_%m_%Y')}}"><strong>{{r.manga.title}} {{r.volume}}</strong></a>
               </td>
               <td>{{r.release_date.strftime("%d/%m/%Y")}}</td>
-              <div id="cover_{{r.manga_id}}_{{r.volume}}_{{r.release_date.strftime('%d_%m_%Y')}}" class="modal fade" role="dialog">
+              <div id="cover_{{ i }}" class="modal fade" role="dialog">
                   <div class="modal-dialog modal-sm">
                     <!-- Modal content-->
                     <div class="modal-content">
                         <div class="mmodal-header">
                           <button type="button" class="close" data-dismiss="modal">&times;</button>
-                          <h5><strong>{{r.manga.title}} {{r.volume}}</strong></h4>
+                          <h5><strong>{{r.manga.title}} {{r.volume}}</strong></h5>
                         </div>
                       <div class="modal-body">
-                        <image src="{{r.cover}}" class="img-thumbnail img-responsive center-block" ></image>
+                          <img src="{{ r.cover }}" class="img-thumbnail img-responsive center-block"/>
                       </div>
                     </div>
 

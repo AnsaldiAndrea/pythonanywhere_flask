@@ -14,8 +14,9 @@
                     contentType: 'application/json;charset=UTF-8',
                     success: function(response){
                         //console.log(response)
-                        data = $.parseJSON(response)
+                        data = JSON.parse(response);
                         //console.log(data)
+                        var alert = $("#alert");
                         if (data['success']) {
                             console.log(data);
                             $('#id').val(data['id']);
@@ -28,12 +29,10 @@
                             $('#artist').val(data['artist']);
                             $('#complete').val(data['complete']).change();
                             $('#cover').val(data['cover']);
-                            var alert = $("#alert");
                             alert.attr("style","display: none;");
                         }
                         else {
-                            console.log('error')
-                            var alert = $("#alert");
+                            console.log('error');
                             alert.text(data["message"]);
                             alert.removeAttr("style");
                         }
