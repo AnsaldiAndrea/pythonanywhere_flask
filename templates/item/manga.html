@@ -11,7 +11,7 @@
             console.log(JSON.stringify(data));
             $.ajax({
                 type : "POST",
-                url : $SCRIPT_ROOT + "releases/" + data['manga_id'] + "/" + data['volume'] + (data['buy']==='true'? "/delete":"/add"),
+                url : $SCRIPT_ROOT + "/releases/" + data['manga_id'] + "/" + data['volume'] + (data['buy']==='true'? "/delete":"/add"),
                 contentType: 'application/json;charset=UTF-8',
                 success: function(response){
                     console.log(response);

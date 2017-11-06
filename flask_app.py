@@ -255,7 +255,7 @@ def manga():
 
 
 @app.route("/manga/<string:manga_id>")
-def item(manga_id):
+def manga_item(manga_id):
     user_collection = []
     try:
         m = Manga.query.filter_by(id=manga_id).first()

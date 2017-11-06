@@ -110,7 +110,7 @@
         {% for m in MANGA_LIST %}
             {% if session.logged_in and m.id in USER_LIST %}
             <tr class='info' id={{m.id}}>
-              <td><a href="{{ url_for("manga", manga_id=m.id) }}"><strong>{{m.title}}</strong></a></td>
+              <td><a href="{{ url_for("manga_item", manga_id=m.id) }}"><strong>{{m.title}}</strong></a></td>
               <td>{{m.publisher.value}}</td>
               <td>
                   <a href="javascript:void(0)" class="btn btn-primary pull-right btn-sm" id='interested' name='{{m.id}}' data-action="delete">
@@ -120,7 +120,7 @@
             </tr>
             {% elif session.logged_in and not m.id in USER_LIST %}
             <tr id={{m.id}}>
-              <td><a href="{{ url_for("manga", manga_id=m.id) }}"><strong>{{m.title}}</strong></a></td>
+              <td><a href="{{ url_for("manga_item", manga_id=m.id) }}"><strong>{{m.title}}</strong></a></td>
               <td>{{m.publisher.value}}</td>
               <td>
                   <a href="javascript:void(0)" class="btn btn-default pull-right btn-sm" id='interested' name='{{m.id}}' data-action="add">
@@ -130,7 +130,7 @@
             </tr>
             {% else %}
             <tr id={{m.id}}>
-              <td><a href="{{ url_for("manga", manga_id=m.id) }}"><strong>{{m.title}}</strong></a></td>
+              <td><a href="{{ url_for("manga_item", manga_id=m.id) }}"><strong>{{m.title}}</strong></a></td>
               <td>{{m.publisher.value}}</td>
             </tr>
             {% endif %}
