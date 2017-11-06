@@ -11,17 +11,22 @@
             console.log(JSON.stringify(data));
             $.ajax({
                 type : "POST",
-                url : $SCRIPT_ROOT + "/add_volume",
-                data : JSON.stringify(data),
+                url : $SCRIPT_ROOT + "releases/" + data['manga_id'] + "/" + data['volume'] + (data['buy']==='true'? "/delete":"/add"),
                 contentType: 'application/json;charset=UTF-8',
                 success: function(response){
-                    console.log(response)
-                    if(is_buy=='false'){
-                        button.attr("data-buy","true");
-                        parent.addClass("info")
-                    } else {
-                        button.attr("data-buy","false");
-                        parent.removeClass("info")
+                    console.log(response);
+                    var response_dict = JSON.parse(response);
+                    if(response_dict.success){
+                        if(is_buy==='false'){
+                            button.attr("data-buy","true");
+                            parent.addClass("info")
+                        } else {
+                            button.attr("data-buy","false");
+                            parent.removeClass("info")
+                        }
+                    }
+                    else {
+                        console.log(response_dict.error)
                     }
                 },
                 error: function(error){
@@ -91,10 +96,6 @@
         <div class="content">{{MANGA.released}} Volumes  ({{MANGA.status.value}})</div>
         <div class="key"><strong>Publisher</strong></div>
         <div class="content">{{MANGA.publisher.value}}</div>
-        <!--
-        <div class="key"><strong>Status</strong></div>
-        <div class="content">{{MANGA.status.value}}</div>
-        -->
         <div class="key"><strong>Author(s)</strong></div>
         <div class="content">{{MANGA.authors}}</div>
         <div class="key"><strong>Artist(s)</strong></div>
@@ -135,10 +136,10 @@
                                     <div class="modal-content">
                                       <div class="mmodal-header">
                                         <button type="button" class="close" data-dismiss="modal">&times;</button>
-                                        <h5><strong>{{MANGA.title}} {{c.volume}}</strong></h4>
+                                        <h5><strong>{{MANGA.title}} {{c.volume}}</strong></h5>
                                       </div>
                                       <div class="modal-body">
-                                        <image src="{{c.cover}}" class="img-thumbnail img-responsive center-block" ></image>
+                                          <img src="{{ c.cover }}" class="img-thumbnail img-responsive center-block"/>
                                       </div>
                                     </div>
 
@@ -174,8 +175,10 @@
             {% else %}
                 <table class="table table-condensed">
                     <thead>
-                        <th>Title</th>
-                        <th>Release Date</th>
+                        <tr>
+                            <th>Title</th>
+                            <th>Release Date</th>
+                        </tr>
                     </thead>
                     <tbody>
                         {% for r in RELEASE_LIST %}

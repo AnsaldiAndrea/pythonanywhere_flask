@@ -133,14 +133,6 @@ class Unknown(db.Model):
     cover = db.Column(db.Text())
 
 
-@app.route("/")
-def index():
-    try:
-        return render_template('index.html')
-    except Exception as e:
-        return type(e)
-
-
 @app.errorhandler(404)
 def page_not_found(error):
     return render_template('error_404.html'), 404
@@ -149,6 +141,43 @@ def page_not_found(error):
 @app.errorhandler(500)
 def internal_server_error(error):
     return render_template('error_500.html'), 500
+
+
+def is_logged_in(f):
+    """check if user is logged in"""
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        if 'logged_in' in session:
+            return f(*args, **kwargs)
+        else:
+            flash('Unauthorized, Please login', 'danger')
+            return redirect(url_for('login'))
+
+    return wrap
+
+
+def is_admin(f):
+    """check if user has admin privileges"""
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        if 'logged_in' in session and 'admin' in session:
+            return f(*args, **kwargs)
+        elif 'logged_in' in session:
+            flash('Unauthorized, You are not an admin', 'danger')
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Unauthorized, Please login', 'danger')
+            return redirect(url_for('login'))
+
+    return wrap
+
+
+@app.route("/")
+def index():
+    try:
+        return render_template('index.html')
+    except Exception as e:
+        return type(e)
 
 
 @app.route("/register", methods=['GET', 'POST'])
@@ -198,34 +227,6 @@ def login():
     return render_template('login.html')
 
 
-# Check if user logged in
-def is_logged_in(f):
-    @wraps(f)
-    def wrap(*args, **kwargs):
-        if 'logged_in' in session:
-            return f(*args, **kwargs)
-        else:
-            flash('Unauthorized, Please login', 'danger')
-            return redirect(url_for('login'))
-
-    return wrap
-
-
-def is_admin(f):
-    @wraps(f)
-    def wrap(*args, **kwargs):
-        if 'logged_in' in session and 'admin' in session:
-            return f(*args, **kwargs)
-        elif 'logged_in' in session:
-            flash('Unauthorized, You are not an admin', 'danger')
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Unauthorized, Please login', 'danger')
-            return redirect(url_for('login'))
-
-    return wrap
-
-
 @app.route('/dashboard')
 @is_logged_in
 def dashboard():
@@ -272,79 +273,54 @@ def item(manga_id):
         return str(e)
 
 
-@app.route("/manga/add", methods=["POST"])
+@app.route("/manga/<string:manga_id>/add", methods=["POST"])
 @is_logged_in
-def add_manga():
-    manga_id = request.json.get('manga_id')
+def add_manga(manga_id):
     user_id = session['user_id']
     um = UserManga(user_id, manga_id)
     try:
         db.session.add(um)
         db.session.commit()
-        return json.dumps({'action': 'add', 'status': 'OK', 'manga_id': manga_id})
+        return json.dumps({'success': True, 'manga_id': manga_id})
     except Exception as e:
-        return json.dumps({'action': 'add', 'status': 'ERROR', 'error': str(e)})
+        return json.dumps({'success': False, 'error': str(e)})
 
 
-@app.route("/manga/delete", methods=["POST"])
+@app.route("/manga/<string:manga_id>/delete", methods=["POST"])
 @is_logged_in
-def delete_manga():
-    manga_id = request.json.get('manga_id')
+def delete_manga(manga_id):
     user_id = session['user_id']
     try:
         um = UserManga.query.filter_by(user_id=user_id, manga_id=manga_id).first()
         db.session.delete(um)
         db.session.commit()
-        return json.dumps({'action': 'delete', 'status': 'OK', 'manga_id': manga_id})
+        return json.dumps({'success': True, 'manga_id': manga_id})
     except Exception as e:
-        return json.dumps({'action': 'delete', 'status': 'ERROR', 'error': str(e)})
+        return json.dumps({'success': False, 'error': str(e)})
 
 
-@app.route("/add_volume", methods=["POST"])
+@app.route("/releases/<string:manga_id>/<int:volume>/add", methods=["POST"])
 @is_logged_in
-def act_volume():
-    manga_id = request.json.get('manga_id')
-    volume = request.json.get('volume')
-    is_buy = request.json.get('buy') == 'true'
-
-    if is_buy:
-        return delete_volume(manga_id, volume)
-    else:
-        return add_volume(manga_id, volume)
-
-
-def add_volume(manga_id, volume):
+def add_volume(manga_id,volume):
     try:
         uv = UserCollection(session['user_id'], manga_id, volume)
         db.session.add(uv)
         db.session.commit()
-        return json.dumps({'status': 'OK', 'action': 'add', 'manga_id': manga_id, 'volume': volume})
-    except Exception:
-        return json.dumps({'status': 'ERROR', 'action': 'add', 'manga_id': manga_id, 'volume': volume})
+        return json.dumps({'success': True, 'manga_id': manga_id, 'volume': volume})
+    except Exception as e:
+        return json.dumps({'success': False, 'error': str(e)})
 
 
-def delete_volume(manga_id, volume):
+@app.route("/releases/<string:manga_id>/<int:volume>/delete", methods=["POST"])
+@is_logged_in
+def delete_volume(manga_id,volume):
     try:
         uv = UserCollection.query.filter_by(user_id=session['user_id'], manga_id=manga_id, volume=volume).first()
         db.session.delete(uv)
         db.session.commit()
-        return json.dumps({'status': 'OK', 'action': 'delete', 'manga_id': manga_id, 'volume': volume})
-    except Exception:
-        return json.dumps({'status': 'ERROR', 'action': 'delete', 'manga_id': manga_id, 'volume': volume})
-
-
-@app.route("/buy_volume", methods=["POST"])
-@is_logged_in
-def buy_volume():
-    manga_id = request.json.get('manga_id')
-    volume = request.json.get('volume')
-    try:
-        uv = UserCollection(session['user_id'], manga_id, volume)
-        db.session.add(uv)
-        db.session.commit()
-        return json.dumps({'status': 'OK', 'manga_id': manga_id, 'volume': volume})
-    except Exception:
-        return json.dumps({'status': 'ERROR', 'manga_id': manga_id, 'volume': volume})
+        return json.dumps({'success': True, 'manga_id': manga_id, 'volume': volume})
+    except Exception as e:
+        return json.dumps({'success': False, 'error': str(e)})
 
 
 @app.route("/releases")
@@ -394,8 +370,7 @@ def test_route():
 @app.route("/admin")
 @is_admin
 def admin_login():
-    u = Unknown.query.all()
-    return render_template('admin/admin.html', unknown=u)
+    return render_template('admin/admin.html')
 
 
 @app.route("/admin/unknown")
@@ -440,7 +415,7 @@ def admin_new_manga():
             message = Markup('<strong>{}</strong> addedd successfully'.format(title))
             flash(message, 'success')
             return render_template('admin/new_manga.html', form=form)
-        except Exception as e:
+        except Exception:
             message = Markup('<strong>Error</strong>\nA problem occurred while adding manga')
             flash(message, 'danger')
             return render_template('admin/new_manga.html', form=form)

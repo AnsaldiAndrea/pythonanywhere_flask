@@ -1,45 +1,50 @@
 {% extends "layout.html" %}
 
 {% block head %}
+    <script type="text/javascript" src="/static/script/manga.js"></script>
+    <!--
     <script type="text/javascript">
         $(function() {
             $("a#interested").click(function() {
+                var manga_id = $(this).attr("name");
                 var action = $(this).attr("data-action");
                 var button = $(this);
                 var parent = $(this).parent().parent();
-                var icon = $(":first-child",this);
-                var data = {"manga_id":$(this).attr("name")};
-                console.log(JSON.stringify(data));
+                var icon = $(":first-child", this);
                 $.ajax({
                     type : "POST",
-                    url : $SCRIPT_ROOT + "/manga/" + action,
-                    data : JSON.stringify(data),
+                    url : $SCRIPT_ROOT + "/manga/" + manga_id + "/" + action,
                     contentType: 'application/json;charset=UTF-8',
-                    success: function(response){
-                        console.log(response);
-                        var resp_dict = JSON.parse(response);
-                        if(action==="delete"){
-                          parent.removeClass("info");
-                          button.removeClass("btn-primary");
-                          button.addClass("btn-default");
-                          button.attr("data-action", "add");
-                          icon.removeClass('glyphicon-star');
-                          icon.addClass("glyphicon-star-empty");
+                    success: function(response) {
+                        var response_success = JSON.parse(response);
+                        if(response_success.success){
+                            if(action==="delete"){
+                              parent.removeClass("info");
+                              button.removeClass("btn-primary");
+                              button.addClass("btn-default");
+                              button.attr("data-action", "add");
+                              icon.removeClass('glyphicon-star');
+                              icon.addClass("glyphicon-star-empty");
+                            } else {
+                              parent.addClass("info");
+                              button.removeClass("btn-default");
+                              button.addClass("btn-primary");
+                              button.attr("data-action","delete");
+                              icon.removeClass('glyphicon-star-empty');
+                              icon.addClass("glyphicon-star");
+                            }
                         } else {
-                          parent.addClass("info");
-                          button.removeClass("btn-default");
-                          button.addClass("btn-primary");
-                          button.attr("data-action","delete");
-                          icon.removeClass('glyphicon-star-empty');
-                          icon.addClass("glyphicon-star");
+                            var response_error = JSON.parse(response);
+                            console.log(response_error.error)
                         }
                     },
                     error: function(error){
                     	console.log(error);
                     }
-                });
+                })
             });
         });
+
     </script>
 
     <script  type="text/javascript">
@@ -61,10 +66,8 @@
         });
     });
     </script>
-
+    -->
     <style>
-        .fixed_c {width:70%}
-
         .table > tbody > tr > td {
             vertical-align: middle;
         }
