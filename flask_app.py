@@ -447,7 +447,8 @@ def admin_new_release():
 def extract_manga():
     text = request.json.get('text')
     try:
-        data = csvstring.csvstring_to_values(text)
+        data = csvstring.csvstring_to_value(text)
+        #return json.dumps({'success': False, 'message': str(data)})
         if not len(data) == 10:
             return json.dumps({'success': False, 'message': 'Text format is incorrect'})
         return json.dumps({'success': True,
@@ -459,7 +460,7 @@ def extract_manga():
                            'status': data[5] if stat[data[5]] else 'ongoing',
                            'author': data[6],
                            'artist': data[7],
-                           'complete': data[8] == 'True' or data[8] == '1',
+                           'complete': 'true' if data[8] == 'True' or data[8] == '1' else 'false',
                            'cover': data[9]})
     except Exception as e:
         return json.dumps({'success': False, 'message': str(e)})
