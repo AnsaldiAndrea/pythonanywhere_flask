@@ -9,6 +9,7 @@ import os
 from functools import wraps
 from forms import RegisterForm, NewMangaForm, NewReleaseForm
 from mypackage import csvstring
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
@@ -464,3 +465,28 @@ def extract_manga():
                            'cover': data[9]})
     except Exception as e:
         return json.dumps({'success': False, 'message': str(e)})
+
+
+@app.route("/admin/upload", methods=["GET","POST"])
+@is_admin
+def upload():
+    if request.method == 'POST':
+    # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part', 'danger')
+            return redirect(request.url)
+        file = request.files['file']
+        # if user does not select file, browser also
+        # submit a empty part without filename
+        if file.filename == '':
+            flash('No selected file', 'danger')
+            return redirect(request.url)
+        if file and file.filename.endswith('.json'):
+            flash(file.read().decode('utf-8'), 'success')
+            return redirect(request.url)
+            '''
+            filename = secure_filename(file.filename)
+            return redirect(url_for('uploaded_file',
+                                    filename=filename))
+            '''
+    return render_template('admin/upload.html')

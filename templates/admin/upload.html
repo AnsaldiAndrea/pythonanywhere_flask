@@ -1,0 +1,19 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+
+<form class="well" action = "{{ url_for('upload') }}" method = "POST" enctype="multipart/form-data">
+    <div class="input-group">
+        <label class="input-group-btn">
+            <span class="btn btn-primary">
+                Browse&hellip; <input name="file" type="file" style="display: none;" onchange="$('#file-name').val($(this).val().split('\\').pop());"/>
+            </span>
+        </label>
+        <input type="text" class="form-control" id="file-name" readonly>
+    </div>
+    <input class="btn btn-default" value="Submit" type="submit"/>
+</form>
+
+
+
+{% endblock %}
