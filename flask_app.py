@@ -58,6 +58,14 @@ class Manga(db.Model):
 class Releases(db.Model):
     __tablename__ = "releases"
 
+    def __init__(self, data):
+        self.manga_id = data['id']
+        self.subtitle = data['subtitle']
+        self.volume = data['volume']
+        self.release_date = data['release_date']
+        self.price = data['price']
+        self.cover = data['cover']
+
     manga_id = db.Column(db.String(16), db.ForeignKey('manga.id'), primary_key=True)
     manga = db.relationship("Manga", backref=db.backref("releases", uselist=False))
     subtitle = db.Column(db.String(50))
@@ -69,6 +77,12 @@ class Releases(db.Model):
 
 class Collection(db.Model):
     __tablename__ = "collection"
+
+    def __init__(self, data):
+        self.manga_id = data['id']
+        self.subtitle = data['subtitle']
+        self.volume = data['volume']
+        self.cover = data['cover']
 
     manga_id = db.Column(db.String(16), db.ForeignKey('manga.id'), primary_key=True)
     manga = db.relationship("Manga", backref=db.backref("collection", uselist=False))
@@ -145,6 +159,7 @@ def internal_server_error(error):
 
 def is_logged_in(f):
     """check if user is logged in"""
+
     @wraps(f)
     def wrap(*args, **kwargs):
         if 'logged_in' in session:
@@ -158,6 +173,7 @@ def is_logged_in(f):
 
 def is_admin(f):
     """check if user has admin privileges"""
+
     @wraps(f)
     def wrap(*args, **kwargs):
         if 'logged_in' in session and 'admin' in session:
@@ -301,7 +317,7 @@ def delete_manga(manga_id):
 
 @app.route("/releases/<string:manga_id>/<int:volume>/add", methods=["POST"])
 @is_logged_in
-def add_volume(manga_id,volume):
+def add_volume(manga_id, volume):
     try:
         uv = UserCollection(session['user_id'], manga_id, volume)
         db.session.add(uv)
@@ -313,7 +329,7 @@ def add_volume(manga_id,volume):
 
 @app.route("/releases/<string:manga_id>/<int:volume>/delete", methods=["POST"])
 @is_logged_in
-def delete_volume(manga_id,volume):
+def delete_volume(manga_id, volume):
     try:
         uv = UserCollection.query.filter_by(user_id=session['user_id'], manga_id=manga_id, volume=volume).first()
         db.session.delete(uv)
@@ -397,7 +413,7 @@ stat = {
 @is_admin
 def admin_new_manga():
     if request.method == 'POST':
-        if request.form['btn']=='Submit JSON':
+        if request.form['btn'] == 'Submit JSON':
             # check if the post request has the file part
             if 'file' not in request.files:
                 flash('No file part', 'danger')
@@ -411,16 +427,32 @@ def admin_new_manga():
             if file and file.filename.endswith('.json'):
                 json_data = json.loads(file.read().decode('utf-8'))
                 if 'info' in json_data:
-                    flash(json.dumps(json_data['info']), 'success')
-                    return redirect(request.url)
+                    try:
+                        title = json_data['info']['title']
+                        add_manga_to_db(manga_to_db_dict(json_data['info']))
+                        if 'release' in json_data:
+                            for r in json_data['release']:
+                                add_release_to_db(r)
+                        if 'collection' in json_data:
+                            for i in json_data['collection']:
+                                add_collection_item_to_db(i)
+                        message = Markup('<strong>{}</strong> addedd successfully'.format(title))
+                        flash(message, 'success')
+                        return redirect(url_for('dashboard'))
+                    except Exception:
+                        message = Markup('<strong>Error</strong>\nA problem occurred while adding manga')
+                        flash(message, 'danger')
+                        return redirect(request.url)
                 else:
                     flash('Uploaded file has wrong format', 'danger')
                     return redirect(request.url)
-                flash(file.read().decode('utf-8'), 'success')
+            else:
+                flash('Uploaded file is not JSON')
                 return redirect(request.url)
         else:
             form = NewMangaForm(request.form)
             if form.validate():
+                '''
                 id = request.form['id']
                 title = request.form['title']
                 volumes = int(request.form['volumes'])
@@ -431,10 +463,15 @@ def admin_new_manga():
                 artist = request.form['artist']
                 complete = request.form['complete'] == 'true'
                 cover = request.form['cover']
+                '''
                 try:
+                    '''
                     m = Manga(id, title, volumes, released, publisher, status, author, artist, complete, cover)
                     db.session.add(m)
                     db.session.commit()
+                    '''
+                    title = request.form['title']
+                    add_manga_to_db(manga_to_db_dict(request.form))
                     message = Markup('<strong>{}</strong> addedd successfully'.format(title))
                     flash(message, 'success')
                     return render_template('admin/new_manga.html', form=form)
@@ -447,6 +484,39 @@ def admin_new_manga():
     else:
         form = NewMangaForm(request.form)
         return render_template('admin/new_manga.html', form=form)
+
+
+def manga_to_db_dict(info):
+    data = {'id': info['id'], 'title': info['title'], 'volumes': int(info['volumes']),
+            'released': int(info['released']), 'publisher': Publisher(info['publisher']),
+            'status': Status(info['status']), 'author': info['author'], 'artist': info['artist'],
+            'complete': info['complete'] == 'true', 'cover': info['cover']}
+    return data
+
+
+def add_manga_to_db(info):
+    m = Manga(info['id'], info['title'], info['volumes'], info['released'],
+              info['publisher'], info['status'], info['author'], info['artist'],
+              info['complete'], info['cover'])
+    db.session.add(m)
+    db.session.commit()
+
+
+def add_release_to_db(release):
+    release['volume'] = int(release['volume'])
+    release['release_date'] = datetime.strptime(release['release_date'], '%Y-%m-%d')
+    release['price'] = float(release['price'])
+    r = Releases(release)
+    db.session.add(r)
+    db.session.commit()
+
+
+def add_collection_item_to_db(item):
+    item['volume'] = int(item['volume'])
+    c = Collection(item)
+    db.session.add(c)
+    db.session.commit()
+
 
 @app.route("/admin/new_release", methods=['GET', 'POST'])
 @is_admin
@@ -473,7 +543,7 @@ def extract_manga():
     text = request.json.get('text')
     try:
         data = csvstring.csvstring_to_value(text)
-        #return json.dumps({'success': False, 'message': str(data)})
+        # return json.dumps({'success': False, 'message': str(data)})
         if not len(data) == 10:
             return json.dumps({'success': False, 'message': 'Text format is incorrect'})
         return json.dumps({'success': True,
@@ -491,12 +561,12 @@ def extract_manga():
         return json.dumps({'success': False, 'message': str(e)})
 
 
-@app.route("/admin/upload", methods=["GET","POST"])
+@app.route("/admin/upload", methods=["GET", "POST"])
 @is_admin
 def upload():
     if request.method == 'POST':
-        if request.form['btn']=='Submit JSON':
-        # check if the post request has the file part
+        if request.form['btn'] == 'Submit JSON':
+            # check if the post request has the file part
             if 'file' not in request.files:
                 flash('No file part', 'danger')
                 return redirect(request.url)
@@ -509,9 +579,4 @@ def upload():
             if file and file.filename.endswith('.json'):
                 flash(file.read().decode('utf-8'), 'success')
                 return redirect(request.url)
-                '''
-                filename = secure_filename(file.filename)
-                return redirect(url_for('uploaded_file',
-                                        filename=filename))
-                '''
     return render_template('admin/upload.html')
