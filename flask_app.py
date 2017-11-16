@@ -9,7 +9,6 @@ import os
 from functools import wraps
 from forms import RegisterForm, NewMangaForm, NewReleaseForm
 from mypackage import csvstring
-from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
@@ -397,32 +396,57 @@ stat = {
 @app.route("/admin/new_manga", methods=['GET', 'POST'])
 @is_admin
 def admin_new_manga():
-    form = NewMangaForm(request.form)
-    if request.method == 'POST' and form.validate():
-        id = request.form['id']
-        title = request.form['title']
-        volumes = int(request.form['volumes'])
-        released = int(request.form['released'])
-        publisher = Publisher(pub[request.form['publisher']])
-        status = Status(stat[request.form['status']])
-        author = request.form['author']
-        artist = request.form['artist']
-        complete = request.form['complete'] == 'true'
-        cover = request.form['cover']
-        try:
-            m = Manga(id, title, volumes, released, publisher, status, author, artist, complete, cover)
-            db.session.add(m)
-            db.session.commit()
-            message = Markup('<strong>{}</strong> addedd successfully'.format(title))
-            flash(message, 'success')
-            return render_template('admin/new_manga.html', form=form)
-        except Exception:
-            message = Markup('<strong>Error</strong>\nA problem occurred while adding manga')
-            flash(message, 'danger')
-            return render_template('admin/new_manga.html', form=form)
+    if request.method == 'POST':
+        if request.form['btn']=='Submit JSON':
+            # check if the post request has the file part
+            if 'file' not in request.files:
+                flash('No file part', 'danger')
+                return redirect(request.url)
+            file = request.files['file']
+            # if user does not select file, browser also
+            # submit a empty part without filename
+            if file.filename == '':
+                flash('No selected file', 'danger')
+                return redirect(request.url)
+            if file and file.filename.endswith('.json'):
+                json_data = json.loads(file.read().decode('utf-8'))
+                if 'info' in json_data:
+                    flash(json.dumps(json_data['info']), 'success')
+                    return redirect(request.url)
+                else:
+                    flash('Uploaded file has wrong format', 'danger')
+                    return redirect(request.url)
+                flash(file.read().decode('utf-8'), 'success')
+                return redirect(request.url)
+        else:
+            form = NewMangaForm(request.form)
+            if form.validate():
+                id = request.form['id']
+                title = request.form['title']
+                volumes = int(request.form['volumes'])
+                released = int(request.form['released'])
+                publisher = Publisher(pub[request.form['publisher']])
+                status = Status(stat[request.form['status']])
+                author = request.form['author']
+                artist = request.form['artist']
+                complete = request.form['complete'] == 'true'
+                cover = request.form['cover']
+                try:
+                    m = Manga(id, title, volumes, released, publisher, status, author, artist, complete, cover)
+                    db.session.add(m)
+                    db.session.commit()
+                    message = Markup('<strong>{}</strong> addedd successfully'.format(title))
+                    flash(message, 'success')
+                    return render_template('admin/new_manga.html', form=form)
+                except Exception:
+                    message = Markup('<strong>Error</strong>\nA problem occurred while adding manga')
+                    flash(message, 'danger')
+                    return render_template('admin/new_manga.html', form=form)
+            else:
+                return render_template('admin/new_manga.html', form=form)
     else:
+        form = NewMangaForm(request.form)
         return render_template('admin/new_manga.html', form=form)
-
 
 @app.route("/admin/new_release", methods=['GET', 'POST'])
 @is_admin
@@ -471,22 +495,23 @@ def extract_manga():
 @is_admin
 def upload():
     if request.method == 'POST':
-    # check if the post request has the file part
-        if 'file' not in request.files:
-            flash('No file part', 'danger')
-            return redirect(request.url)
-        file = request.files['file']
-        # if user does not select file, browser also
-        # submit a empty part without filename
-        if file.filename == '':
-            flash('No selected file', 'danger')
-            return redirect(request.url)
-        if file and file.filename.endswith('.json'):
-            flash(file.read().decode('utf-8'), 'success')
-            return redirect(request.url)
-            '''
-            filename = secure_filename(file.filename)
-            return redirect(url_for('uploaded_file',
-                                    filename=filename))
-            '''
+        if request.form['btn']=='Submit JSON':
+        # check if the post request has the file part
+            if 'file' not in request.files:
+                flash('No file part', 'danger')
+                return redirect(request.url)
+            file = request.files['file']
+            # if user does not select file, browser also
+            # submit a empty part without filename
+            if file.filename == '':
+                flash('No selected file', 'danger')
+                return redirect(request.url)
+            if file and file.filename.endswith('.json'):
+                flash(file.read().decode('utf-8'), 'success')
+                return redirect(request.url)
+                '''
+                filename = secure_filename(file.filename)
+                return redirect(url_for('uploaded_file',
+                                        filename=filename))
+                '''
     return render_template('admin/upload.html')

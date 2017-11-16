@@ -52,7 +52,7 @@
   {% from "_formhelpers.html" import render_field %}
   <hr>
   <div class="row">
-      <div class="col-md-6">
+      <div class="well col-md-6">
         <form method="POST" action="">
             <div class="form-group">
               {{render_field(form.id, class_="form-control")}}
@@ -84,18 +84,24 @@
             <div class="form-group">
               {{render_field(form.cover, class_="form-control")}}
             </div>
-            <p><input type="submit" class="btn btn-primary" value="Submit"></p>
+            <p><input name="btn" type="submit" class="btn btn-primary" value="Submit Manga"></p>
         </form>
       </div>
       <div class="col-md-6">
         <h3>Populate fields from json</h3>
         <div id="alert" class="alert alert-danger" style="display: none;">
         </div>
-        <div class="form-group">
-          <label for="text">Text</label>
-          <textarea class="form-control" rows="5" id="text"></textarea>
-        </div>
-        <p><input id="extract" type="submit" class="btn btn-primary" value="Extract"></p>
+        <form class="well" action = "{{ url_for('admin_new_manga') }}" method = "POST" enctype="multipart/form-data">
+            <div class="input-group">
+                <label class="input-group-btn">
+                    <span class="btn btn-primary">
+                        Browse&hellip; <input name="file" type="file" style="display: none;" onchange="$('#file-name').val($(this).val().split('\\').pop());"/>
+                    </span>
+                </label>
+                <input type="text" class="form-control" id="file-name" readonly>
+            </div>
+            <input name='btn' class="btn btn-default" value="Submit JSON" type="submit"/>
+        </form>
       </div>
   </div>
 
