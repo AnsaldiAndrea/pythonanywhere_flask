@@ -9,6 +9,7 @@ import os
 from functools import wraps
 from forms import RegisterForm, NewMangaForm, NewReleaseForm
 from mypackage import csvstring
+import traceback
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
@@ -439,8 +440,8 @@ def admin_new_manga():
                         message = Markup('<strong>{}</strong> addedd successfully'.format(title))
                         flash(message, 'success')
                         return redirect(url_for('dashboard'))
-                    except Exception:
-                        message = Markup('<strong>Error</strong>\nA problem occurred while adding manga')
+                    except Exception as e:
+                        message = Markup('<strong>Error</strong>\nA problem occurred while adding manga: {}'.format(traceback.format_exc()))
                         flash(message, 'danger')
                         return redirect(request.url)
                 else:
@@ -475,8 +476,8 @@ def admin_new_manga():
                     message = Markup('<strong>{}</strong> addedd successfully'.format(title))
                     flash(message, 'success')
                     return render_template('admin/new_manga.html', form=form)
-                except Exception:
-                    message = Markup('<strong>Error</strong>\nA problem occurred while adding manga')
+                except Exception as e:
+                    message = Markup('<strong>Error</strong>\nA problem occurred while adding manga: {}'.format(e))
                     flash(message, 'danger')
                     return render_template('admin/new_manga.html', form=form)
             else:
@@ -488,8 +489,8 @@ def admin_new_manga():
 
 def manga_to_db_dict(info):
     data = {'id': info['id'], 'title': info['title'], 'volumes': int(info['volumes']),
-            'released': int(info['released']), 'publisher': Publisher(info['publisher']),
-            'status': Status(info['status']), 'author': info['author'], 'artist': info['artist'],
+            'released': int(info['released']), 'publisher': Publisher(pub[info['publisher']]),
+            'status': Status(info['status']), 'author': ','.join(info['author']), 'artist': ','.join(info['artist']),
             'complete': info['complete'] == 'true', 'cover': info['cover']}
     return data
 
