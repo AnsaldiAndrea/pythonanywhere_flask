@@ -1,6 +1,7 @@
 from flask import Flask, render_template, flash, redirect, url_for, session, request, abort, json, Markup
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import inspect
 from datetime import datetime, timedelta
 from static.types.enumtypes import Publisher
 from static.types.enumtypes import Status
@@ -15,7 +16,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
 app.config["DEBUG"] = True
 
-SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://{username}:{password}@{hostname}/{databasename}".format(
+SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://{username}:{password}@{hostname}/{databasename}?charset=utf8".format(
     username="Raistrike",
     password="Nuvoletta2",
     hostname="Raistrike.mysql.pythonanywhere-services.com",
@@ -32,7 +33,7 @@ db = SQLAlchemy(app)
 class Manga(db.Model):
     __tablename__ = "manga"
 
-    def __init__(self, id, title, volumes, released, publisher, status, authors, artists, complete, cover):
+    def __init__(self, id, title, volumes, released, publisher, status, authors, artists, genre, complete, cover):
         self.id = id
         self.title = title
         self.volumes = volumes
@@ -41,6 +42,7 @@ class Manga(db.Model):
         self.status = status
         self.authors = authors
         self.artists = artists
+        self.genre = genre
         self.complete = complete
         self.cover = cover
 
@@ -52,6 +54,7 @@ class Manga(db.Model):
     status = db.Column(db.Enum(Status), nullable=False)
     authors = db.Column(db.String(100), nullable=False)
     artists = db.Column(db.String(100), nullable=False)
+    genre = db.Column(db.Text())
     complete = db.Column(db.Boolean(), default=0)
     cover = db.Column(db.Text(), nullable=False)
 
@@ -146,6 +149,11 @@ class Unknown(db.Model):
     release_date = db.Column(db.DateTime, nullable=False, primary_key=True)
     price = db.Column(db.Float(), nullable=False, default=0)
     cover = db.Column(db.Text())
+
+
+def object_as_dict(obj):
+    return {c.key: getattr(obj, c.key)
+            for c in inspect(obj).mapper.column_attrs}
 
 
 @app.errorhandler(404)
@@ -491,14 +499,14 @@ def manga_to_db_dict(info):
     data = {'id': info['id'], 'title': info['title'], 'volumes': int(info['volumes']),
             'released': int(info['released']), 'publisher': Publisher(pub[info['publisher']]),
             'status': Status(info['status']), 'author': ','.join(info['author']), 'artist': ','.join(info['artist']),
-            'complete': info['complete'] == 'true', 'cover': info['cover']}
+            'genre':','.join(info['genre']),'complete': info['complete'], 'cover': info['cover']}
     return data
 
 
 def add_manga_to_db(info):
     m = Manga(info['id'], info['title'], info['volumes'], info['released'],
               info['publisher'], info['status'], info['author'], info['artist'],
-              info['complete'], info['cover'])
+              info['genre'], info['complete'], info['cover'])
     db.session.add(m)
     db.session.commit()
 
@@ -581,3 +589,18 @@ def upload():
                 flash(file.read().decode('utf-8'), 'success')
                 return redirect(request.url)
     return render_template('admin/upload.html')
+
+
+@app.route("/api/manga", methods=["GET"])
+def api_manga():
+    l = Manga.query.all()
+    s = json.dumps([{'manga_id':x.id, 'title':x.title} for x in l],ensure_ascii=False)
+    with open('api.log', 'w+') as f:
+        f.write(s)
+    return s
+
+
+@app.route("/api/manga", methods=["POST"])
+def api_manga_post():
+    return json.dumps(request.get_json())
+
