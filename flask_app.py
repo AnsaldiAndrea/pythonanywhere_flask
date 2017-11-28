@@ -1,16 +1,17 @@
+import os
+from datetime import datetime, timedelta
+from functools import wraps
+import traceback
+
 from flask import Flask, render_template, flash, redirect, url_for, session, request, abort, json, Markup
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy import inspect
-from datetime import datetime, timedelta
-from static.types.enumtypes import Publisher
-from static.types.enumtypes import Status
 from passlib.hash import sha256_crypt
-import os
-from functools import wraps
+from sqlalchemy.exc import IntegrityError
+
+import database_helper as db_helper
 from forms import RegisterForm, NewMangaForm, NewReleaseForm
-from mypackage import csvstring
-import traceback
+from release_parser import ReleaseParser
+from static.types.enumtypes import Publisher, Status
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
@@ -33,18 +34,18 @@ db = SQLAlchemy(app)
 class Manga(db.Model):
     __tablename__ = "manga"
 
-    def __init__(self, id, title, volumes, released, publisher, status, authors, artists, genre, complete, cover):
-        self.id = id
-        self.title = title
-        self.volumes = volumes
-        self.released = released
-        self.publisher = publisher
-        self.status = status
-        self.authors = authors
-        self.artists = artists
-        self.genre = genre
-        self.complete = complete
-        self.cover = cover
+    def __init__(self, data):
+        self.id = data['id']
+        self.title = data['title']
+        self.volumes = data['volumes']
+        self.released = data['released']
+        self.publisher = data['publisher']
+        self.status = data['status']
+        self.authors = data['authors']
+        self.artists = data['artists']
+        self.genre = data['genre']
+        self.complete = data['complete']
+        self.cover = data['cover']
 
     id = db.Column(db.String(16), primary_key=True, autoincrement=False)
     title = db.Column(db.String(100), nullable=False)
@@ -57,6 +58,18 @@ class Manga(db.Model):
     genre = db.Column(db.Text())
     complete = db.Column(db.Boolean(), default=0)
     cover = db.Column(db.Text(), nullable=False)
+
+
+class Alias(db.Model):
+    __tablename__ = "alias"
+
+    def __init__(self, manga_id, alias):
+        self.manga_id = manga_id
+        self.title = alias
+
+    manga_id = db.Column(db.String(16), db.ForeignKey('manga.id'), primary_key=True)
+    manga = db.relationship("Manga", backref=db.backref("alias", uselist=False))
+    title = db.Column(db.String(100), primary_key=True)
 
 
 class Releases(db.Model):
@@ -143,17 +156,20 @@ class UserCollection(db.Model):
 class Unknown(db.Model):
     __tablename__ = "unknown"
 
+    def __init__(self, data):
+        self.title = data['title']
+        self.subtitle = data['subtitle']
+        self.publisher = data['publisher']
+        self.release_date = data['release_date']
+        self.price = data['price']
+        self.cover = data['cover']
+
     title = db.Column(db.String(150), primary_key=True)
     subtitle = db.Column(db.String(150), primary_key=True)
     publisher = db.Column(db.String(6))
     release_date = db.Column(db.DateTime, nullable=False, primary_key=True)
     price = db.Column(db.Float(), nullable=False, default=0)
     cover = db.Column(db.Text())
-
-
-def object_as_dict(obj):
-    return {c.key: getattr(obj, c.key)
-            for c in inspect(obj).mapper.column_attrs}
 
 
 @app.errorhandler(404)
@@ -405,19 +421,6 @@ def unknown():
     return render_template('admin/unknown.html', unknown=u)
 
 
-pub = {
-    'planet': 'Planet Manga',
-    'star': 'StarComics',
-    'jpop': 'J-POP',
-    'goen': 'GOEN'
-}
-stat = {
-    'ongoing': 'Ongoing',
-    'complete': 'Complete',
-    'tba': 'TBA'
-}
-
-
 @app.route("/admin/new_manga", methods=['GET', 'POST'])
 @is_admin
 def admin_new_manga():
@@ -438,18 +441,19 @@ def admin_new_manga():
                 if 'info' in json_data:
                     try:
                         title = json_data['info']['title']
-                        add_manga_to_db(manga_to_db_dict(json_data['info']))
+                        db_helper.insert_manga(db, json_data['info'])
                         if 'release' in json_data:
                             for r in json_data['release']:
-                                add_release_to_db(r)
+                                db_helper.insert_release(db, r)
                         if 'collection' in json_data:
                             for i in json_data['collection']:
-                                add_collection_item_to_db(i)
+                                db_helper.insert_collection_item(db, i)
                         message = Markup('<strong>{}</strong> addedd successfully'.format(title))
                         flash(message, 'success')
                         return redirect(url_for('dashboard'))
                     except Exception as e:
-                        message = Markup('<strong>Error</strong>\nA problem occurred while adding manga: {}'.format(traceback.format_exc()))
+                        message = Markup('<strong>Error</strong>\nA problem occurred while adding manga: {}'.format(
+                            traceback.format_exc()))
                         flash(message, 'danger')
                         return redirect(request.url)
                 else:
@@ -461,26 +465,9 @@ def admin_new_manga():
         else:
             form = NewMangaForm(request.form)
             if form.validate():
-                '''
-                id = request.form['id']
-                title = request.form['title']
-                volumes = int(request.form['volumes'])
-                released = int(request.form['released'])
-                publisher = Publisher(pub[request.form['publisher']])
-                status = Status(stat[request.form['status']])
-                author = request.form['author']
-                artist = request.form['artist']
-                complete = request.form['complete'] == 'true'
-                cover = request.form['cover']
-                '''
                 try:
-                    '''
-                    m = Manga(id, title, volumes, released, publisher, status, author, artist, complete, cover)
-                    db.session.add(m)
-                    db.session.commit()
-                    '''
                     title = request.form['title']
-                    add_manga_to_db(manga_to_db_dict(request.form))
+                    db_helper.insert_manga(db, request.form)
                     message = Markup('<strong>{}</strong> addedd successfully'.format(title))
                     flash(message, 'success')
                     return render_template('admin/new_manga.html', form=form)
@@ -493,38 +480,6 @@ def admin_new_manga():
     else:
         form = NewMangaForm(request.form)
         return render_template('admin/new_manga.html', form=form)
-
-
-def manga_to_db_dict(info):
-    data = {'id': info['id'], 'title': info['title'], 'volumes': int(info['volumes']),
-            'released': int(info['released']), 'publisher': Publisher(pub[info['publisher']]),
-            'status': Status(info['status']), 'author': ','.join(info['author']), 'artist': ','.join(info['artist']),
-            'genre':','.join(info['genre']),'complete': info['complete'], 'cover': info['cover']}
-    return data
-
-
-def add_manga_to_db(info):
-    m = Manga(info['id'], info['title'], info['volumes'], info['released'],
-              info['publisher'], info['status'], info['author'], info['artist'],
-              info['genre'], info['complete'], info['cover'])
-    db.session.add(m)
-    db.session.commit()
-
-
-def add_release_to_db(release):
-    release['volume'] = int(release['volume'])
-    release['release_date'] = datetime.strptime(release['release_date'], '%Y-%m-%d')
-    release['price'] = float(release['price'])
-    r = Releases(release)
-    db.session.add(r)
-    db.session.commit()
-
-
-def add_collection_item_to_db(item):
-    item['volume'] = int(item['volume'])
-    c = Collection(item)
-    db.session.add(c)
-    db.session.commit()
 
 
 @app.route("/admin/new_release", methods=['GET', 'POST'])
@@ -544,30 +499,6 @@ def admin_new_release():
         cover = request.args.get('cover', '')
         return render_template('admin/new_release.html', form=form, title_list=title_list, title_dict=title_dict,
                                title=title, subtitle=subtitle, release_date=release_date, price=price, cover=cover)
-
-
-@app.route("/admin/new_manga/extract", methods=["POST"])
-@is_admin
-def extract_manga():
-    text = request.json.get('text')
-    try:
-        data = csvstring.csvstring_to_value(text)
-        # return json.dumps({'success': False, 'message': str(data)})
-        if not len(data) == 10:
-            return json.dumps({'success': False, 'message': 'Text format is incorrect'})
-        return json.dumps({'success': True,
-                           'id': data[0],
-                           'title': data[1],
-                           'volumes': int(data[2]),
-                           'released': int(data[3]),
-                           'publisher': data[4] if pub[data[4]] else 'planet',
-                           'status': data[5] if stat[data[5]] else 'ongoing',
-                           'author': data[6],
-                           'artist': data[7],
-                           'complete': 'true' if data[8] == 'True' or data[8] == '1' else 'false',
-                           'cover': data[9]})
-    except Exception as e:
-        return json.dumps({'success': False, 'message': str(e)})
 
 
 @app.route("/admin/upload", methods=["GET", "POST"])
@@ -591,16 +522,31 @@ def upload():
     return render_template('admin/upload.html')
 
 
-@app.route("/api/manga", methods=["GET"])
+@app.route("/api/manga", methods=["GET", "POST"])
 def api_manga():
-    l = Manga.query.all()
-    s = json.dumps([{'manga_id':x.id, 'title':x.title} for x in l],ensure_ascii=False)
-    with open('api.log', 'w+') as f:
-        f.write(s)
-    return s
+    if request.method == 'POST':
+        data = request.get_json()
+        return db_helper.insert(db, data)
+    else:
+        m = Manga.query.all()
+        s = json.dumps([{'id': x.id,
+                         'title': x.title,
+                         'volumes': x.volumes,
+                         'released': x.released,
+                         'publisher': x.publisher.value,
+                         'status':x.status.value,
+                         'author':x.author,
+                         'artist':x.artist,
+                         'genre':x.genre,
+                         'complete':x.compete,
+                         'cover':x.cover} for x in m], indent=4, ensure_ascii=False)
+        with open('api.log', 'w+') as f:
+            f.write(s)
+        return s
 
 
-@app.route("/api/manga", methods=["POST"])
-def api_manga_post():
-    return json.dumps(request.get_json())
+@app.route("/api/parse_releases", methods=["POST"])
+def api_parse_releases():
+    data = request.get_json()
+    return ReleaseParser(db).parse(data)
 
