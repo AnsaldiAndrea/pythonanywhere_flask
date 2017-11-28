@@ -550,3 +550,8 @@ def api_parse_releases():
     data = request.get_json()
     return ReleaseParser(db).parse(data)
 
+
+@app.route("/api/alias", methods=["GET"])
+def api_alias():
+    return json.dumps(db_helper.get_titles_with_alias(), indent=4, ensure_ascii=False)
+
