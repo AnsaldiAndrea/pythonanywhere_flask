@@ -1,4 +1,3 @@
-from flask_app import Manga, Alias, Releases, Collection, Unknown
 from datetime import datetime
 from static.types.enumtypes import Publisher, Status
 import traceback
@@ -6,6 +5,7 @@ import re
 
 
 def get_titles_with_alias():
+    from flask_app import Manga, Alias
     t = Manga.query.all()
     titles = {re.sub('[^\w]', '', x.title).lower(): x.id for x in t}
     a = Alias.query.all()
@@ -47,6 +47,7 @@ def insert_manga(db, _manga):
     _manga['artist'] = ','.join(_manga['artist'])
     _manga['genre'] = ','.join(_manga['genre'])
 
+    from flask_app import Manga
     m = Manga.query.filter(Manga.id == _manga['id']).first()
     if not m:
         m = Manga(_manga)
@@ -55,6 +56,7 @@ def insert_manga(db, _manga):
 
 
 def insert_alias(db, manga_id, alias):
+    from flask_app import Alias
     a = Alias.query.filter(Alias.manga_id == manga_id, Alias.title == alias).first()
     if not a:
         a = Alias(manga_id, alias)
@@ -63,6 +65,7 @@ def insert_alias(db, manga_id, alias):
 
 
 def insert_release(db, release):
+    from flask_app import Releases
     release['volume'] = int(release['volume'])
     release['release_date'] = datetime.strptime(release['release_date'], '%Y-%m-%d')
     release['price'] = float(release['price'])
@@ -79,6 +82,7 @@ def insert_release(db, release):
 
 
 def insert_collection_item(db, item):
+    from flask_app import Collection
     item['volume'] = int(item['volume'])
     c = Collection(item)
     db.session.add(c)
@@ -86,6 +90,7 @@ def insert_collection_item(db, item):
 
 
 def insert_unknown(db, values):
+    from flask_app import Unknown
     values['release_date'] = datetime.strptime(values['release_date'], '%Y-%m-%d')
     u = Unknown.query.filter(Unknown.title == values['title'],
                              Unknown.subtitle == values['subtitle'],
@@ -97,6 +102,7 @@ def insert_unknown(db, values):
 
 
 def update_collection(db, values):
+    from flask_app import Collection
     c = Collection.query.filter(Collection.manga_id == values['id'], Collection.volume == values['volume']).first()
     if c:
         c.cover = values['cover']
@@ -106,6 +112,7 @@ def update_collection(db, values):
 
 
 def update_manga(db, values):
+    from flask_app import Manga
     t = values['release_date'].isocalendar()[:2]
     now = datetime.now().isocalendar()[:2]
     if t <= now:
