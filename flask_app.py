@@ -534,12 +534,12 @@ def api_manga():
                          'volumes': x.volumes,
                          'released': x.released,
                          'publisher': x.publisher.value,
-                         'status':x.status.value,
-                         'author':x.author,
-                         'artist':x.artist,
-                         'genre':x.genre,
-                         'complete':x.compete,
-                         'cover':x.cover} for x in m], indent=4, ensure_ascii=False)
+                         'status': x.status.value,
+                         'author': x.author,
+                         'artist': x.artist,
+                         'genre': x.genre,
+                         'complete': x.compete,
+                         'cover': x.cover} for x in m], indent=4, ensure_ascii=False)
         with open('api.log', 'w+') as f:
             f.write(s)
         return s
@@ -554,4 +554,3 @@ def api_parse_releases():
 @app.route("/api/alias", methods=["GET"])
 def api_alias():
     return json.dumps(db_helper.get_titles_with_alias(), indent=4, ensure_ascii=False)
-

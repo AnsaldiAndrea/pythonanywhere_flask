@@ -102,4 +102,4 @@ def fix(manga_id, volume, values):
     values['manga_id'] = manga_id
     values['volume'] = volume
     values['price'] = values['price'] if values['price'] else "0"
-    values.pop('title_volume', None)
+    values['title'] = values.pop('title_volume', None)
