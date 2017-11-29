@@ -1,6 +1,6 @@
 import re
 import database_helper as db_helper
-
+import traceback
 
 class ReleaseParser:
     def __init__(self, db):
@@ -22,7 +22,7 @@ class ReleaseParser:
                     regex_jpop(self.db, x, titles, to_correct)
                     continue
             except Exception:
-                return x
+                return {"obj":x, "trace":traceback.format_exc()}
         for x in correct_jpop(to_correct):
             db_helper.insert_release(self.db, x)
 
@@ -88,7 +88,7 @@ def correct_jpop(values):
     news_list = [x for x in values if not x['cover']]
     other = [x for x in values if x not in news_list]
     for n in news_list:
-        o = [x for x in other if x['manga_id'] == n['manga_id'] and x['volume'] == n['volume']]
+        o = [x for x in other if x['id'] == n['id'] and x['volume'] == n['volume']]
         if o:
             n['cover'] = o[0]['cover']
     return news_list
@@ -102,7 +102,8 @@ def check_title(title, titles):
 
 
 def fix(manga_id, volume, values):
-    values['manga_id'] = manga_id
+    values['id'] = manga_id
     values['volume'] = volume
     values['price'] = values['price'] if values['price'] else "0"
     values.pop('title_volume', None)
+    return values

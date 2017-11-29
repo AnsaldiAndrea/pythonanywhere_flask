@@ -66,6 +66,9 @@ def insert_alias(db, manga_id, alias):
 
 def insert_release(db, release):
     from flask_app import Releases
+    with open("api.log", "w") as p:
+        if release:
+            p.write(release['id'])
     release['volume'] = int(release['volume'])
     release['release_date'] = datetime.strptime(release['release_date'], '%Y-%m-%d')
     release['price'] = float(release['price'])
@@ -77,8 +80,8 @@ def insert_release(db, release):
         r = Releases(release)
         db.session.add(r)
         db.session.commit()
-        update_collection(db, release)
-        update_manga(db, release)
+    update_collection(db, release)
+    update_manga(db, release)
 
 
 def insert_collection_item(db, item):
@@ -91,14 +94,15 @@ def insert_collection_item(db, item):
 
 def insert_unknown(db, values):
     from flask_app import Unknown
+    values['title'] = values.pop('title_volume', None)
     values['release_date'] = datetime.strptime(values['release_date'], '%Y-%m-%d')
-    u = Unknown.query.filter(Unknown.title == values['title_volume'],
+    u = Unknown.query.filter(Unknown.title == values['title'],
                              Unknown.subtitle == values['subtitle'],
                              Unknown.release_date == values['release_date']).first()
     if not u:
         u = Unknown(values)
         db.session.add(u)
-        db.commit()
+        db.session.commit()
 
 
 def update_collection(db, values):
@@ -116,11 +120,12 @@ def update_manga(db, values):
     t = values['release_date'].isocalendar()[:2]
     now = datetime.now().isocalendar()[:2]
     if t <= now:
-        m = Manga.query.filter(Manga.id == values['id'])
+        m = Manga.query.filter(Manga.id == values['id']).first()
         if m:
             if values['volume'] > m.released:
                 m.released = values['volume']
-                m.cover = values['cover']
+                if values['cover']:
+                    m.cover = values['cover']
             if values['volume'] == 1 and m.status == Status.TBA:
                 m.status = Status.Ongoing
             if values['volume'] == m.volumes and m.complete:
