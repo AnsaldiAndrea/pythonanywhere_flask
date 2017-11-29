@@ -548,7 +548,7 @@ def api_manga():
 @app.route("/api/parse_releases", methods=["POST"])
 def api_parse_releases():
     data = request.get_json()
-    return ReleaseParser(db).parse(data)
+    return json.dumps(ReleaseParser(db).parse(data))
 
 
 @app.route("/api/alias", methods=["GET"])

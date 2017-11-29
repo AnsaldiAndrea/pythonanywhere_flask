@@ -10,16 +10,19 @@ class ReleaseParser:
         titles = db_helper.get_titles_with_alias()
         to_correct = []
         for x in data:
-            pub = x['publisher']
-            if pub == 'planet':
-                regex_planet(self.db, x, titles)
-                continue
-            if pub == 'star':
-                regex_star(self.db, x, titles)
-                continue
-            if pub == 'jpop':
-                regex_jpop(self.db, x, titles, to_correct)
-                continue
+            try:
+                pub = x['publisher']
+                if pub == 'planet':
+                    regex_planet(self.db, x, titles)
+                    continue
+                if pub == 'star':
+                    regex_star(self.db, x, titles)
+                    continue
+                if pub == 'jpop':
+                    regex_jpop(self.db, x, titles, to_correct)
+                    continue
+            except Exception:
+                return x
         for x in correct_jpop(to_correct):
             db_helper.insert_release(self.db, x)
 
