@@ -92,7 +92,7 @@ def insert_collection_item(db, item):
 def insert_unknown(db, values):
     from flask_app import Unknown
     values['release_date'] = datetime.strptime(values['release_date'], '%Y-%m-%d')
-    u = Unknown.query.filter(Unknown.title == values['title'],
+    u = Unknown.query.filter(Unknown.title == values['title_volume'],
                              Unknown.subtitle == values['subtitle'],
                              Unknown.release_date == values['release_date']).first()
     if not u:
