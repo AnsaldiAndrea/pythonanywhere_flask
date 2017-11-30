@@ -39,6 +39,7 @@ class Manga(db.Model):
         self.title = data['title']
         self.volumes = data['volumes']
         self.released = data['released']
+        self.original = data.get('original', '')
         self.publisher = data['publisher']
         self.status = data['status']
         self.authors = data['authors']
@@ -49,6 +50,7 @@ class Manga(db.Model):
 
     id = db.Column(db.String(16), primary_key=True, autoincrement=False)
     title = db.Column(db.String(100), nullable=False)
+    original = db.Column(db.String(100))
     volumes = db.Column(db.Integer, nullable=False, default=0)
     released = db.Column(db.Integer, nullable=False, default=0)
     publisher = db.Column(db.Enum(Publisher), nullable=False)
@@ -531,15 +533,16 @@ def api_manga():
         m = Manga.query.all()
         s = json.dumps([{'id': x.id,
                          'title': x.title,
+                         'original': x.original,
                          'volumes': x.volumes,
                          'released': x.released,
                          'publisher': x.publisher.value,
                          'status': x.status.value,
-                         'author': x.author,
-                         'artist': x.artist,
+                         'author': x.authors,
+                         'artist': x.artists,
                          'genre': x.genre,
                          'complete': x.compete,
-                         'cover': x.cover} for x in m], indent=4, ensure_ascii=False)
+                         'cover': x.cover} for x in m], ensure_ascii=False)
         with open('api.log', 'w+') as f:
             f.write(s)
         return s
@@ -554,3 +557,8 @@ def api_parse_releases():
 @app.route("/api/alias", methods=["GET"])
 def api_alias():
     return json.dumps(db_helper.get_titles_with_alias(), indent=4, ensure_ascii=False)
+
+
+@app.route("/api/update_manga", methods=["POST"])
+def api_alias():
+    return db_helper.update_manga(db,request.get_json())

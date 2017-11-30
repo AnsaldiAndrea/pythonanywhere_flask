@@ -81,7 +81,7 @@ def insert_release(db, release):
         db.session.add(r)
         db.session.commit()
     update_collection(db, release)
-    update_manga(db, release)
+    update_manga_from_release(db, release)
 
 
 def insert_collection_item(db, item):
@@ -115,19 +115,36 @@ def update_collection(db, values):
     db.session.commit()
 
 
-def update_manga(db, values):
+def update_manga_from_release(db, release):
     from flask_app import Manga
-    t = values['release_date'].isocalendar()[:2]
+    t = release['release_date'].isocalendar()[:2]
     now = datetime.now().isocalendar()[:2]
     if t <= now:
-        m = Manga.query.filter(Manga.id == values['id']).first()
+        m = Manga.query.filter(Manga.id == release['id']).first()
         if m:
-            if values['volume'] > m.released:
-                m.released = values['volume']
-                if values['cover']:
-                    m.cover = values['cover']
-            if values['volume'] == 1 and m.status == Status.TBA:
+            if release['volume'] > m.released:
+                m.released = release['volume']
+                if release['cover']:
+                    m.cover = release['cover']
+            if release['volume'] == 1 and m.status == Status.TBA:
                 m.status = Status.Ongoing
-            if values['volume'] == m.volumes and m.complete:
+            if release['volume'] == m.volumes and m.complete:
                 m.status = Status.Complete
             db.session.commit()
+
+
+def update_manga(db, values):
+    try:
+        from flask_app import Manga
+        m = Manga.query.filter(Manga.id == values['id']).first()
+        if m:
+            m.original = values['original']
+            m.volumes = values['volumes']
+            m.complete = values['complete']
+            m.genre = ','.join(values['genre'])
+            db.session.commit()
+            return {'status': 'OK',
+                    'message': '{} updated'.format(m.title)}
+    except Exception:
+        return {'status': 'Error',
+                'message': traceback.format_exc()}
