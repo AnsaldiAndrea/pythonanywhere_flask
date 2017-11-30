@@ -541,11 +541,19 @@ def api_manga():
                          'author': x.authors,
                          'artist': x.artists,
                          'genre': x.genre,
-                         'complete': x.compete,
+                         'complete': x.complete,
                          'cover': x.cover} for x in m], ensure_ascii=False)
         with open('api.log', 'w+') as f:
             f.write(s)
         return s
+
+
+@app.route("/api/manga/id", methods=["GET"])
+def api_id():
+    #m = Manga.query.filter(Manga.complete==False).all()
+    m = Manga.query.all()
+    l = [x.id for x in m]
+    return json.dumps({"id":l})
 
 
 @app.route("/api/parse_releases", methods=["POST"])
@@ -560,5 +568,6 @@ def api_alias():
 
 
 @app.route("/api/update_manga", methods=["POST"])
-def api_alias():
-    return db_helper.update_manga(db,request.get_json())
+def api_update_manga():
+    r = db_helper.update_manga(db,request.get_json())
+    return json.dumps(r)

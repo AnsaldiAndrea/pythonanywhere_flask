@@ -122,7 +122,7 @@ def update_manga_from_release(db, release):
     if t <= now:
         m = Manga.query.filter(Manga.id == release['id']).first()
         if m:
-            if release['volume'] > m.released:
+            if release['volume'] >= m.released:
                 m.released = release['volume']
                 if release['cover']:
                     m.cover = release['cover']
@@ -134,9 +134,9 @@ def update_manga_from_release(db, release):
 
 
 def update_manga(db, values):
+    from flask_app import Manga
+    m = Manga.query.filter(Manga.id == values['id']).first()
     try:
-        from flask_app import Manga
-        m = Manga.query.filter(Manga.id == values['id']).first()
         if m:
             m.original = values['original']
             m.volumes = values['volumes']
@@ -147,4 +147,5 @@ def update_manga(db, values):
                     'message': '{} updated'.format(m.title)}
     except Exception:
         return {'status': 'Error',
+                'source': m.title,
                 'message': traceback.format_exc()}
