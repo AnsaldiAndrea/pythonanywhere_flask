@@ -45,7 +45,7 @@ def log_in(request, session):
     password_p = request.form['password']
 
     q = Users.query.filter(Users.username == username).first()
-    if q:
+    if not q:
         return {'status': 'Error', 'message': 'User not found', 'level': 'danger'}
     else:
         if sha256_crypt.verify(password_p, q.password):

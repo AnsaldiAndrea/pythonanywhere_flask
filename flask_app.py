@@ -8,6 +8,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Resource, Api
 
 from sqlalchemy.ext.hybrid import hybrid_method
+from sqlalchemy.sql.expression import func, tuple_
 
 import database_helper as db_helper
 from forms import RegisterForm, NewMangaForm, NewReleaseForm
@@ -95,29 +96,42 @@ class Releases(db.Model):
     price = db.Column(db.Float(), nullable=False, default=0)
     cover = db.Column(db.Text())
 
+    def compare(left,right):
+        if(left[0]>right[0]): return 1
+        if(left[0]<right[0]): return -1
+        if(left[1]>right[1]): return 1
+        if(left[1]<right[1]): return -1
+        return 0
+
     @hybrid_method
     def bounds(self, _from=None, _to=None, _at=None):
-        if not (_from and _to):
+        if not (_from or _to or _at) :
             return True
         now = datetime.now()
+        iso = tuple_(func.extract('year', self.release_date), func.extract('week', self.release_date)+1)
         if _at:
-            at_week = (now - timedelta(weeks=_at)).isocalendar()[:2]
-            return self.release_date.isocalendar()[:2] == at_week
+            at_week = (now + timedelta(weeks=_at)).isocalendar()[:2]
+            return iso == tuple_(at_week[0], at_week[1])
+            #return self.compare(iso, at_week)==0
         if _from and _to:
             from_week = (now + timedelta(weeks=_from)).isocalendar()[:2]
             to_week = (now + timedelta(weeks=_to)).isocalendar()[:2]
-            return from_week <= self.release_date.isocalendar()[:2] < to_week
+            return iso >= tuple_(from_week[0], from_week[1]) & iso < tuple_(to_week[0], to_week[1])
+            #return self.compare(iso, from_week)>=0 & self.compare(iso, to_week)<0
         if _from:
             from_week = (now + timedelta(weeks=_from)).isocalendar()[:2]
-            return from_week <= self.release_date.isocalendar()[:2]
+            return iso >= tuple_(from_week[0], from_week[1])
+            #return self.compare(iso, from_week)>=0
         if _to:
             to_week = (now + timedelta(weeks=_to)).isocalendar()[:2]
-            return self.release_date.isocalendar()[:2] < to_week
+            return iso < tuple_(to_week[0], to_week[1])
+            #return self.compare(iso, to_week)<0
+        return False
 
     @hybrid_method
     def user(self, _collection=None, _manga=None):
         if _collection and _manga:
-            return self.manga_id in _manga or (self.manga_id, self.volume) in _collection
+            return (self.manga_id in _manga) &  ((self.manga_id, self.volume) not in _collection)
         else:
             return True
 
@@ -379,22 +393,21 @@ header = {'prev': 'Previous Weeks', 'this': 'This Week', 'next': 'Next Week', 'f
 def releases():
     data = Releases.query.join(Manga).order_by(Releases.release_date).all()
 
-    """
     now = datetime.now()
     date_prev = now - timedelta(weeks=8)
     date_next = now + timedelta(weeks=1)
     t_now = now.isocalendar()[:2]
     t_prev = date_prev.isocalendar()[:2]
     t_next = date_next.isocalendar()[:2]
-    """
 
     user_collection = []
     user_manga = []
     if session.get('logged_in', False):
-        user_collection = UserCollection.query.filter(UserCollection.user_id == session['user_id']).with_entities(UserCollection.manga_id, UserCollection.volume).all()
+        user_collection = UserCollection.query.filter(UserCollection.user_id == session['user_id']).all()
         user_collection = [(c.manga_id, c.volume) for c in user_collection]
-        user_manga = UserManga.query.filter(UserManga.user_id == session['user_id']).with_entities(UserManga.manga_id).all()
-        # user_manga = [m.manga_id for m in user_m_raw]
+        user_manga = UserManga.query.filter(UserManga.user_id == session['user_id']).all()
+        user_manga = [m.manga_id for m in user_manga]
+    """
     week_dict = {'prev': Releases.query.filter(
                     Releases.bounds(_from=-8, _to=0) and Releases.user(_collection=user_collection, _manga=user_manga)).all(),
                  'this': Releases.query.filter(
@@ -403,8 +416,8 @@ def releases():
                     Releases.bounds(_at=1) and Releases.user(_collection=user_collection, _manga=user_manga)).all(),
                  'future': Releases.query.filter(
                     Releases.bounds(_from=2) and Releases.user(_collection=user_collection, _manga=user_manga)).all()}
-
     """
+    week_dict = {'prev':[],'this':[],'next':[],'future':[]}
     for r in data:
         if (r.manga_id, r.volume) in user_collection or (user_manga and r.manga_id not in user_manga):
             continue
@@ -419,7 +432,6 @@ def releases():
             week_dict['next'].append(r)
         else:
             week_dict['future'].append(r)
-    """
     price_dict = {key: sum(x.price for x in value) for key, value in week_dict.items()}
     return render_template('releases.html', RELEASE_DICT=week_dict, PRICE=price_dict, HEADER=header)
 
