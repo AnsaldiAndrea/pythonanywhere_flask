@@ -5,8 +5,9 @@ import traceback
 
 from flask import Flask, render_template, flash, redirect, url_for, session, request, abort, json, Markup
 from flask_sqlalchemy import SQLAlchemy
-from passlib.hash import sha256_crypt
-from sqlalchemy.exc import IntegrityError
+from flask_restful import Resource, Api
+
+from sqlalchemy.ext.hybrid import hybrid_method
 
 import database_helper as db_helper
 from forms import RegisterForm, NewMangaForm, NewReleaseForm
@@ -16,6 +17,7 @@ from static.types.enumtypes import Publisher, Status
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
 app.config["DEBUG"] = True
+
 
 SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://{username}:{password}@{hostname}/{databasename}?charset=utf8".format(
     username="Raistrike",
@@ -92,6 +94,32 @@ class Releases(db.Model):
     release_date = db.Column(db.DateTime, nullable=False, primary_key=True)
     price = db.Column(db.Float(), nullable=False, default=0)
     cover = db.Column(db.Text())
+
+    @hybrid_method
+    def bounds(self, _from=None, _to=None, _at=None):
+        if not (_from and _to):
+            return True
+        now = datetime.now()
+        if _at:
+            at_week = (now - timedelta(weeks=_at)).isocalendar()[:2]
+            return self.release_date.isocalendar()[:2] == at_week
+        if _from and _to:
+            from_week = (now + timedelta(weeks=_from)).isocalendar()[:2]
+            to_week = (now + timedelta(weeks=_to)).isocalendar()[:2]
+            return from_week <= self.release_date.isocalendar()[:2] < to_week
+        if _from:
+            from_week = (now + timedelta(weeks=_from)).isocalendar()[:2]
+            return from_week <= self.release_date.isocalendar()[:2]
+        if _to:
+            to_week = (now + timedelta(weeks=_to)).isocalendar()[:2]
+            return self.release_date.isocalendar()[:2] < to_week
+
+    @hybrid_method
+    def user(self, _collection=None, _manga=None):
+        if _collection and _manga:
+            return self.manga_id in _manga or (self.manga_id, self.volume) in _collection
+        else:
+            return True
 
 
 class Collection(db.Model):
@@ -227,18 +255,11 @@ def index():
 def register():
     form = RegisterForm(request.form)
     if request.method == 'POST' and form.validate():
-        name = form.name.data
-        email = form.email.data
-        username = form.username.data
-        password = str(sha256_crypt.encrypt(form.password.data))
-
-        new_user = Users(name, email, username, password)
-        try:
-            db.session.add(new_user)
-            db.session.commit()
-            flash('Registration Successful.\n Welcome {}'.format(username), 'success')
+        u = db_helper.register_user(db, form)
+        if u:
+            flash('Registration Successful.\n Welcome {}'.format(u.username), 'success')
             return redirect(url_for('index'))
-        except IntegrityError:
+        else:
             flash('Username is already taken', 'danger')
     return render_template('register.html', form=form)
 
@@ -247,26 +268,12 @@ def register():
 def login():
     if request.method == 'POST':
         if 'logged_in' in session:
-            flash('You are already logged in as: {}'.format(session['username']), 'danger')
+            flash('You are already logged in as: {}'.format(session['username']), 'warning')
             return redirect(url_for('dashboard'))
-        username = request.form['username']
-        password_p = request.form['password']
-
-        q = Users.query.filter(Users.username == username).first()
-        if q is None:
-            flash('Username not found', 'danger')
-        else:
-            if sha256_crypt.verify(password_p, q.password):
-                session['logged_in'] = True
-                session['username'] = username
-                session['user_id'] = q.id
-                if q.admin:
-                    session['admin'] = 1
-                flash('Logged in', 'success')
-                return redirect(url_for('dashboard'))
-            else:
-                flash('Invalid password', 'danger')
-
+        r = db_helper.log_in(request, session)
+        flash(r['message'], r['level'])
+        if r['status'] == 'OK':
+            return redirect(url_for('dashboard'))
     return render_template('login.html')
 
 
@@ -366,26 +373,38 @@ def delete_volume(manga_id, volume):
         return json.dumps({'success': False, 'error': str(e)})
 
 
+header = {'prev': 'Previous Weeks', 'this': 'This Week', 'next': 'Next Week', 'future': 'Future Releases'}
+
 @app.route("/releases")
 def releases():
     data = Releases.query.join(Manga).order_by(Releases.release_date).all()
-    week_dict = {'prev': [], 'this': [], 'next': [], 'future': []}
 
+    """
     now = datetime.now()
     date_prev = now - timedelta(weeks=8)
     date_next = now + timedelta(weeks=1)
     t_now = now.isocalendar()[:2]
     t_prev = date_prev.isocalendar()[:2]
     t_next = date_next.isocalendar()[:2]
+    """
 
     user_collection = []
     user_manga = []
     if session.get('logged_in', False):
-        user_c_raw = UserCollection.query.filter_by(user_id=session['user_id']).all()
-        user_collection = [(c.manga_id, c.volume) for c in user_c_raw]
-        user_m_raw = UserManga.query.filter_by(user_id=session['user_id'])
-        user_manga = [m.manga_id for m in user_m_raw]
+        user_collection = UserCollection.query.filter(UserCollection.user_id == session['user_id']).with_entities(UserCollection.manga_id, UserCollection.volume).all()
+        user_collection = [(c.manga_id, c.volume) for c in user_collection]
+        user_manga = UserManga.query.filter(UserManga.user_id == session['user_id']).with_entities(UserManga.manga_id).all()
+        # user_manga = [m.manga_id for m in user_m_raw]
+    week_dict = {'prev': Releases.query.filter(
+                    Releases.bounds(_from=-8, _to=0) and Releases.user(_collection=user_collection, _manga=user_manga)).all(),
+                 'this': Releases.query.filter(
+                    Releases.bounds(_at=0) and Releases.user(_collection=user_collection, _manga=user_manga)).all(),
+                 'next': Releases.query.filter(
+                    Releases.bounds(_at=1) and Releases.user(_collection=user_collection, _manga=user_manga)).all(),
+                 'future': Releases.query.filter(
+                    Releases.bounds(_from=2) and Releases.user(_collection=user_collection, _manga=user_manga)).all()}
 
+    """
     for r in data:
         if (r.manga_id, r.volume) in user_collection or (user_manga and r.manga_id not in user_manga):
             continue
@@ -400,8 +419,8 @@ def releases():
             week_dict['next'].append(r)
         else:
             week_dict['future'].append(r)
+    """
     price_dict = {key: sum(x.price for x in value) for key, value in week_dict.items()}
-    header = {'prev': 'Previous Weeks', 'this': 'This Week', 'next': 'Next Week', 'future': 'Future Releases'}
     return render_template('releases.html', RELEASE_DICT=week_dict, PRICE=price_dict, HEADER=header)
 
 
@@ -531,18 +550,7 @@ def api_manga():
         return db_helper.insert(db, data)
     else:
         m = Manga.query.all()
-        s = json.dumps([{'id': x.id,
-                         'title': x.title,
-                         'original': x.original,
-                         'volumes': x.volumes,
-                         'released': x.released,
-                         'publisher': x.publisher.value,
-                         'status': x.status.value,
-                         'author': x.authors,
-                         'artist': x.artists,
-                         'genre': x.genre,
-                         'complete': x.complete,
-                         'cover': x.cover} for x in m], ensure_ascii=False)
+        s = json.dumps([db_helper.manga_to_dict(x) for x in m], ensure_ascii=False)
         with open('api.log', 'w+') as f:
             f.write(s)
         return s
@@ -550,10 +558,8 @@ def api_manga():
 
 @app.route("/api/manga/id", methods=["GET"])
 def api_id():
-    #m = Manga.query.filter(Manga.complete==False).all()
     m = Manga.query.all()
-    l = [x.id for x in m]
-    return json.dumps({"id":l})
+    return json.dumps({"id": [x.id for x in m]})
 
 
 @app.route("/api/parse_releases", methods=["POST"])
@@ -569,5 +575,5 @@ def api_alias():
 
 @app.route("/api/update_manga", methods=["POST"])
 def api_update_manga():
-    r = db_helper.update_manga(db,request.get_json())
+    r = db_helper.update_manga(db, request.get_json())
     return json.dumps(r)

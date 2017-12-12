@@ -1,7 +1,62 @@
-from datetime import datetime
-from static.types.enumtypes import Publisher, Status
-import traceback
 import re
+import traceback
+from datetime import datetime
+
+from passlib.handlers.sha2_crypt import sha256_crypt
+from sqlalchemy.exc import IntegrityError
+
+from static.types.enumtypes import Publisher, Status
+
+
+def manga_to_dict(manga):
+    return {'id': manga.id,
+            'title': manga.title,
+            'original': manga.original,
+            'volumes': manga.volumes,
+            'released': manga.released,
+            'publisher': manga.publisher.value,
+            'status': manga.status.value,
+            'author': manga.authors,
+            'artist': manga.artists,
+            'genre': manga.genre,
+            'complete': manga.complete,
+            'cover': manga.cover}
+
+
+def register_user(db, form):
+    from flask_app import Users
+    name = form.name.data
+    email = form.email.data
+    username = form.username.data
+    password = str(sha256_crypt.encrypt(form.password.data))
+
+    new_user = Users(name, email, username, password)
+    try:
+        db.session.add(new_user)
+        db.session.commit()
+        return new_user
+    except IntegrityError:
+        return False
+
+
+def log_in(request, session):
+    from flask_app import Users
+    username = request.form['username']
+    password_p = request.form['password']
+
+    q = Users.query.filter(Users.username == username).first()
+    if q:
+        return {'status': 'Error', 'message': 'User not found', 'level': 'danger'}
+    else:
+        if sha256_crypt.verify(password_p, q.password):
+            session['logged_in'] = True
+            session['username'] = username
+            session['user_id'] = q.id
+            if q.admin:
+                session['admin'] = 1
+            return {'status': 'OK', 'message': 'Logged in', 'level': 'success'}
+        else:
+            return {'status': 'Error', 'message': 'Invalid Passord', 'level': 'danger'}
 
 
 def get_titles_with_alias():
@@ -22,12 +77,16 @@ def insert(db, values):
             insert_manga(db, values['info'])
             if 'release' in values:
                 n_r = len(values['releases'])
-                for r in values['releases']:
-                    insert_release(db, r)
+                for release in values['releases']:
+                    r = insert_release(db, release)
+                    if not r['status'] == 'OK':
+                        return r
             if 'collection' in values:
                 n_c = len(values['collection'])
                 for c in values['collection']:
-                    insert_collection_item(db, c)
+                    r = insert_collection_item(db, c)
+                    if not r['status'] == 'OK':
+                        return r
             return {'status': 'OK',
                     'message': '{} added succeffully with {} releases and {} collection item'.format(title, n_r, n_c)}
         else:
@@ -66,9 +125,7 @@ def insert_alias(db, manga_id, alias):
 
 def insert_release(db, release):
     from flask_app import Releases
-    with open("api.log", "w") as p:
-        if release:
-            p.write(release['id'])
+
     release['volume'] = int(release['volume'])
     release['release_date'] = datetime.strptime(release['release_date'], '%Y-%m-%d')
     release['price'] = float(release['price'])
@@ -80,57 +137,89 @@ def insert_release(db, release):
         r = Releases(release)
         db.session.add(r)
         db.session.commit()
-    update_collection(db, release)
-    update_manga_from_release(db, release)
+    u = update_collection(db, release)
+    if not u['status'] == 'OK':
+        return u
+    u = update_manga_from_release(db, release)
+    if not u['status'] == 'OK':
+        return u
 
 
 def insert_collection_item(db, item):
     from flask_app import Collection
-    item['volume'] = int(item['volume'])
-    c = Collection(item)
-    db.session.add(c)
-    db.session.commit()
+    try:
+        item['volume'] = int(item['volume'])
+        c = Collection(item)
+        db.session.add(c)
+        db.session.commit()
+        return {'status': 'OK',
+                'message': '{id}-{volume} added'.format_map(item)}
+    except Exception:
+        return {'status': 'Error',
+                'source': '{id}-{volume} added'.format_map(item),
+                'message': traceback.format_exc()}
 
 
 def insert_unknown(db, values):
     from flask_app import Unknown
-    values['title'] = values.pop('title_volume', None)
-    values['release_date'] = datetime.strptime(values['release_date'], '%Y-%m-%d')
-    u = Unknown.query.filter(Unknown.title == values['title'],
-                             Unknown.subtitle == values['subtitle'],
-                             Unknown.release_date == values['release_date']).first()
-    if not u:
-        u = Unknown(values)
-        db.session.add(u)
-        db.session.commit()
+    try:
+        values['title'] = values.pop('title_volume', None)
+        values['release_date'] = datetime.strptime(values['release_date'], '%Y-%m-%d')
+        u = Unknown.query.filter(Unknown.title == values['title'],
+                                 Unknown.subtitle == values['subtitle'],
+                                 Unknown.release_date == values['release_date']).first()
+        if not u:
+            u = Unknown(values)
+            db.session.add(u)
+            db.session.commit()
+        return {'status': 'OK',
+                'message': '{title} added'.format_map(values)}
+    except Exception:
+        return {'status': 'Error',
+                'source': '{title} added'.format_map(values),
+                'message': traceback.format_exc()}
 
 
 def update_collection(db, values):
     from flask_app import Collection
-    c = Collection.query.filter(Collection.manga_id == values['id'], Collection.volume == values['volume']).first()
-    if c:
-        c.cover = values['cover']
-    else:
-        insert_collection_item(db, values)
-    db.session.commit()
+    try:
+        c = Collection.query.filter(Collection.manga_id == values['id'], Collection.volume == values['volume']).first()
+        if c:
+            c.cover = values['cover']
+        else:
+            insert_collection_item(db, values)
+        db.session.commit()
+        return {'status': 'OK',
+                'message': '{id}-{volume} added'.format_map(values)}
+    except Exception:
+        return {'status': 'Error',
+                'source': '{id}-{volume}'.format_map(values),
+                'message': traceback.format_exc()}
 
 
 def update_manga_from_release(db, release):
     from flask_app import Manga
-    t = release['release_date'].isocalendar()[:2]
-    now = datetime.now().isocalendar()[:2]
-    if t <= now:
-        m = Manga.query.filter(Manga.id == release['id']).first()
-        if m:
-            if release['volume'] >= m.released:
-                m.released = release['volume']
-                if release['cover']:
-                    m.cover = release['cover']
-            if release['volume'] == 1 and m.status == Status.TBA:
-                m.status = Status.Ongoing
-            if release['volume'] == m.volumes and m.complete:
-                m.status = Status.Complete
-            db.session.commit()
+    try:
+        t = release['release_date'].isocalendar()[:2]
+        now = datetime.now().isocalendar()[:2]
+        if t <= now:
+            m = Manga.query.filter(Manga.id == release['id']).first()
+            if m:
+                if release['volume'] >= m.released:
+                    m.released = release['volume']
+                    if release['cover']:
+                        m.cover = release['cover']
+                if release['volume'] == 1 and m.status == Status.TBA:
+                    m.status = Status.Ongoing
+                if release['volume'] == m.volumes and m.complete:
+                    m.status = Status.Complete
+                db.session.commit()
+        return {'status': 'OK',
+                'message': '{id}-{volume}-{release_date} added'.format_map(release)}
+    except Exception:
+        return {'status': 'Error',
+                'source': '{id}-{volume}-{release_date}'.format_map(release),
+                'message': traceback.format_exc()}
 
 
 def update_manga(db, values):
@@ -138,13 +227,19 @@ def update_manga(db, values):
     m = Manga.query.filter(Manga.id == values['id']).first()
     try:
         if m:
-            m.original = values['original']
+            if 'original' in values:
+                m.original = values['original']
+            if 'genre' in values:
+                m.genre = values['genre']
+            if 'author' in values:
+                m.authors = values['author']
+            if 'artist' in values:
+                m.artists = values['artist']
             m.volumes = values['volumes']
             m.complete = values['complete']
-            m.genre = ','.join(values['genre'])
             db.session.commit()
-            return {'status': 'OK',
-                    'message': '{} updated'.format(m.title)}
+        return {'status': 'OK',
+                'message': '{} updated'.format(m.title)}
     except Exception:
         return {'status': 'Error',
                 'source': m.title,

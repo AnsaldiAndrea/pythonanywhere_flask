@@ -1,6 +1,8 @@
 import re
-import database_helper as db_helper
 import traceback
+
+import database_helper as db_helper
+
 
 class ReleaseParser:
     def __init__(self, db):
@@ -22,7 +24,11 @@ class ReleaseParser:
                     regex_jpop(self.db, x, titles, to_correct)
                     continue
             except Exception:
-                return {"obj":x, "trace":traceback.format_exc()}
+                return {"status":"Error","sorce": x, "message": traceback.format_exc()}
+        self.insert_jpop(to_correct)
+        return {"status": "OK", "message": "parsing successful"}
+
+    def insert_jpop(self,to_correct):
         for x in correct_jpop(to_correct):
             db_helper.insert_release(self.db, x)
 
