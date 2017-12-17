@@ -6,10 +6,8 @@ import traceback
 from flask import Flask, render_template, flash, redirect, url_for, session, request, abort, json, Markup
 from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Resource, Api
-from flask_migrate import Migrate
 
-from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
-from sqlalchemy.sql.expression import func, tuple_
+from sqlalchemy.ext.hybrid import hybrid_method
 
 import database_helper as db_helper
 from forms import RegisterForm, NewMangaForm, NewReleaseForm
@@ -34,8 +32,6 @@ app.config["SQLALCHEMY_POOL_RECYCLE"] = 299
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
-
-migrate = Migrate(app, db)
 
 
 class Manga(db.Model):
@@ -91,8 +87,7 @@ class Releases(db.Model):
         self.release_date = data['release_date']
         self.price = data['price']
         self.cover = data['cover']
-        self.year = data['release_date'].isocalendar()[0]
-        self.week = data['release_date'].isocalendar()[1]
+        self.yearweek = int(str(data['release_date'].isocalendar[0])+"{:02}".format(data['release_date'].isocalendar[1]))
 
     manga_id = db.Column(db.String(16), db.ForeignKey('manga.id'), primary_key=True)
     manga = db.relationship("Manga", backref=db.backref("releases", uselist=False))
@@ -101,30 +96,19 @@ class Releases(db.Model):
     release_date = db.Column(db.DateTime, nullable=False, primary_key=True)
     price = db.Column(db.Float(), nullable=False, default=0)
     cover = db.Column(db.Text())
-    year = db.Column(db.Integer, nullable=False)
-    week = db.Column(db.Integer, nullable=False)
+    yearweek = db.Column(db.Integer, nullable=False)
 
     @hybrid_method
-    def bounds(self, _from_year=None, _from_week=None, _to_year=None, _to_week=None, _at_year=None, _at_week=None):
-        now = datetime.now()
-        if _at_year and _at_week:
-            return self.year == _at_year & self.week==_at_week
-        if _from_year and _from_week and _to_year and _to_week:
-            if self.year == _from_year and self.week >= _from_week:
-                return (self.year == _to_year and self.week < _to_week) or self.year < _to_year
-            return self.year > _from_year
-        if _from_year and _from_week:
-            return (self.year == _from_year and self.week >= _from_week) or self.year > _from_year
-        if _to_year and _to_week:
-            return (self.year == _to_year and self.week < _to_week) or self.year < _to_year
+    def bounds(self, _from=None, _to=None, _at=None):
+        if _at:
+            return self.yearweek == _at
+        if _from and _to:
+            return (self.yearweek >= _from) & (self.yearweek < _to)
+        if _from:
+            return self.yearweek >= _from
+        if _to:
+            return self.yearweek < _to
         return False
-
-    @hybrid_method
-    def user(self, _collection=None, _manga=None):
-        if _collection and _manga:
-            return (self.manga_id in _manga) &  ((self.manga_id, self.volume) not in _collection)
-        else:
-            return True
 
 
 class Collection(db.Model):
@@ -580,3 +564,9 @@ def api_alias():
 def api_update_manga():
     r = db_helper.update_manga(db, request.get_json())
     return json.dumps(r)
+
+
+@app.route("/api/test", methods=["GET"])
+def api_test():
+    r = Releases.query.filter(Releases.bounds(_from=201749, _to=201751)).order_by(Releases.release_date).all()
+    return json.dumps([{"id":x.manga.title, "volume":x.volume, "release_date":x.release_date} for x in r ])
