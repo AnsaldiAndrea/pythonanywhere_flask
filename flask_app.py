@@ -6,8 +6,9 @@ import traceback
 from flask import Flask, render_template, flash, redirect, url_for, session, request, abort, json, Markup
 from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Resource, Api
+from flask_migrate import Migrate
 
-from sqlalchemy.ext.hybrid import hybrid_method
+from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.sql.expression import func, tuple_
 
 import database_helper as db_helper
@@ -16,6 +17,7 @@ from release_parser import ReleaseParser
 from static.types.enumtypes import Publisher, Status
 
 app = Flask(__name__)
+api = Api(app)
 app.secret_key = os.getenv('SECRET_KEY')
 app.config["DEBUG"] = True
 
@@ -32,6 +34,8 @@ app.config["SQLALCHEMY_POOL_RECYCLE"] = 299
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
+
+migrate = Migrate(app, db)
 
 
 class Manga(db.Model):
@@ -87,6 +91,8 @@ class Releases(db.Model):
         self.release_date = data['release_date']
         self.price = data['price']
         self.cover = data['cover']
+        self.year = data['release_date'].isocalendar()[0]
+        self.week = data['release_date'].isocalendar()[1]
 
     manga_id = db.Column(db.String(16), db.ForeignKey('manga.id'), primary_key=True)
     manga = db.relationship("Manga", backref=db.backref("releases", uselist=False))
@@ -95,37 +101,22 @@ class Releases(db.Model):
     release_date = db.Column(db.DateTime, nullable=False, primary_key=True)
     price = db.Column(db.Float(), nullable=False, default=0)
     cover = db.Column(db.Text())
-
-    def compare(left,right):
-        if(left[0]>right[0]): return 1
-        if(left[0]<right[0]): return -1
-        if(left[1]>right[1]): return 1
-        if(left[1]<right[1]): return -1
-        return 0
+    year = db.Column(db.Integer, nullable=False)
+    week = db.Column(db.Integer, nullable=False)
 
     @hybrid_method
-    def bounds(self, _from=None, _to=None, _at=None):
-        if not (_from or _to or _at) :
-            return True
+    def bounds(self, _from_year=None, _from_week=None, _to_year=None, _to_week=None, _at_year=None, _at_week=None):
         now = datetime.now()
-        iso = tuple_(func.extract('year', self.release_date), func.extract('week', self.release_date)+1)
-        if _at:
-            at_week = (now + timedelta(weeks=_at)).isocalendar()[:2]
-            return iso == tuple_(at_week[0], at_week[1])
-            #return self.compare(iso, at_week)==0
-        if _from and _to:
-            from_week = (now + timedelta(weeks=_from)).isocalendar()[:2]
-            to_week = (now + timedelta(weeks=_to)).isocalendar()[:2]
-            return iso >= tuple_(from_week[0], from_week[1]) & iso < tuple_(to_week[0], to_week[1])
-            #return self.compare(iso, from_week)>=0 & self.compare(iso, to_week)<0
-        if _from:
-            from_week = (now + timedelta(weeks=_from)).isocalendar()[:2]
-            return iso >= tuple_(from_week[0], from_week[1])
-            #return self.compare(iso, from_week)>=0
-        if _to:
-            to_week = (now + timedelta(weeks=_to)).isocalendar()[:2]
-            return iso < tuple_(to_week[0], to_week[1])
-            #return self.compare(iso, to_week)<0
+        if _at_year and _at_week:
+            return self.year == _at_year & self.week==_at_week
+        if _from_year and _from_week and _to_year and _to_week:
+            if self.year == _from_year and self.week >= _from_week:
+                return (self.year == _to_year and self.week < _to_week) or self.year < _to_year
+            return self.year > _from_year
+        if _from_year and _from_week:
+            return (self.year == _from_year and self.week >= _from_week) or self.year > _from_year
+        if _to_year and _to_week:
+            return (self.year == _to_year and self.week < _to_week) or self.year < _to_year
         return False
 
     @hybrid_method
