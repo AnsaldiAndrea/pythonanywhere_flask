@@ -62,9 +62,9 @@ def log_in(request, session):
 def get_titles_with_alias():
     from flask_app import Manga, Alias
     t = Manga.query.all()
-    titles = {re.sub('[^\w]', '', x.title).lower(): x.id for x in t}
+    titles = {(re.sub('[^\w]', '', x.title).lower(), x.publisher): x.id for x in t}
     a = Alias.query.all()
-    alias = {(x.title,x.publisher): x.manga_id for x in a}
+    alias = {(x.title,x.manga.publisher): x.manga_id for x in a}
     return {**titles, **alias}
 
 

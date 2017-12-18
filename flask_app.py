@@ -531,14 +531,15 @@ def upload():
     return render_template('admin/upload.html')
 
 
-class ApiManga(Resource):
+class ApiMangaId(Resource):
     def get(self, manga_id):
-        if manga_id:
-            data = Manga.query.filter(Manga.id == manga_id).first()
-            return json.dumps(db_helper.manga_to_dict(data), ensure_ascii=False)
-        else:
-            data = Manga.query.all()
-            return json.dumps([db_helper.manga_to_dict(x) for x in data], ensure_ascii=False)
+        data = Manga.query.filter(Manga.id == manga_id).first()
+        return json.dumps(db_helper.manga_to_dict(data), ensure_ascii=False)
+
+class ApiManga(Resource):
+    def get(self):
+        data = Manga.query.all()
+        return json.dumps([db_helper.manga_to_dict(x) for x in data], ensure_ascii=False)
 
     def post(self):
         x = db_helper.insert_manga(db, request.get_json())
@@ -547,7 +548,8 @@ class ApiManga(Resource):
         return {'message': x['message']}
 
 
-api.add_resource(ApiManga, 'api/manga/<string:manga_id>')
+api.add_resource(ApiMangaId, '/api/manga/<string:manga_id>')
+api.add_resource(ApiManga, '/api/manga')
 
 
 class ApiParser(Resource):
@@ -555,7 +557,7 @@ class ApiParser(Resource):
         return ReleaseParser.parse_single(request.get_json())
 
 
-api.add_resource(ApiParser, 'api/releases/parse')
+api.add_resource(ApiParser, '/api/releases/parse')
 
 """----------------------------------------"""
 
@@ -602,13 +604,3 @@ def api_test():
     return json.dumps([{"id": x.manga.title, "volume": x.volume, "release_date": x.release_date} for x in r])
 
 """
-
-
-@app.route("/api/update", methods=["GET"])
-def update():
-    r_list = Releases.query.filter(Releases.bounds(_at=201750)).all()
-    for r in r_list:
-        x = db_helper.update_manga_from_db(db, r)
-        if x['status'] == "error":
-            return x
-    return {'message': "update successful"}
