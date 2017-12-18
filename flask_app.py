@@ -19,7 +19,6 @@ api = Api(app)
 app.secret_key = os.getenv('SECRET_KEY')
 app.config["DEBUG"] = True
 
-
 SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://{username}:{password}@{hostname}/{databasename}?charset=utf8".format(
     username="Raistrike",
     password="Nuvoletta2",
@@ -87,7 +86,8 @@ class Releases(db.Model):
         self.release_date = data['release_date']
         self.price = data['price']
         self.cover = data['cover']
-        self.yearweek = int(str(data['release_date'].isocalendar[0])+"{:02}".format(data['release_date'].isocalendar[1]))
+        self.yearweek = int(
+            str(data['release_date'].isocalendar[0]) + "{:02}".format(data['release_date'].isocalendar[1]))
 
     manga_id = db.Column(db.String(16), db.ForeignKey('manga.id'), primary_key=True)
     manga = db.relationship("Manga", backref=db.backref("releases", uselist=False))
@@ -364,6 +364,7 @@ def delete_volume(manga_id, volume):
 
 header = {'prev': 'Previous Weeks', 'this': 'This Week', 'next': 'Next Week', 'future': 'Future Releases'}
 
+
 @app.route("/releases")
 def releases():
     data = Releases.query.join(Manga).order_by(Releases.release_date).all()
@@ -392,7 +393,7 @@ def releases():
                  'future': Releases.query.filter(
                     Releases.bounds(_from=2) and Releases.user(_collection=user_collection, _manga=user_manga)).all()}
     """
-    week_dict = {'prev':[],'this':[],'next':[],'future':[]}
+    week_dict = {'prev': [], 'this': [], 'next': [], 'future': []}
     for r in data:
         if (r.manga_id, r.volume) in user_collection or (user_manga and r.manga_id not in user_manga):
             continue
@@ -530,6 +531,35 @@ def upload():
     return render_template('admin/upload.html')
 
 
+class ApiManga(Resource):
+    def get(self, manga_id):
+        if manga_id:
+            data = Manga.query.filter(Manga.id == manga_id).first()
+            return json.dumps(db_helper.manga_to_dict(data), ensure_ascii=False)
+        else:
+            data = Manga.query.all()
+            return json.dumps([db_helper.manga_to_dict(x) for x in data], ensure_ascii=False)
+
+    def post(self):
+        x = db_helper.insert_manga(db, request.get_json())
+        if x['statust'] == 'error':
+            return abort(500, message=x['message'])
+        return {'message': x['message']}
+
+
+api.add_resource(ApiManga, 'api/manga/<string:manga_id>')
+
+
+class ApiParser(Resource):
+    def post(self):
+        return ReleaseParser.parse_single(request.get_json())
+
+
+api.add_resource(ApiParser, 'api/releases/parse')
+
+"""----------------------------------------"""
+
+"""
 @app.route("/api/manga", methods=["GET", "POST"])
 def api_manga():
     if request.method == 'POST':
@@ -569,4 +599,16 @@ def api_update_manga():
 @app.route("/api/test", methods=["GET"])
 def api_test():
     r = Releases.query.filter(Releases.bounds(_from=201749, _to=201751)).order_by(Releases.release_date).all()
-    return json.dumps([{"id":x.manga.title, "volume":x.volume, "release_date":x.release_date} for x in r ])
+    return json.dumps([{"id": x.manga.title, "volume": x.volume, "release_date": x.release_date} for x in r])
+
+"""
+
+
+@app.route("/api/update", methods=["GET"])
+def update():
+    r_list = Releases.query.filter(Releases.bounds(_at=201750)).all()
+    for r in r_list:
+        x = db_helper.update_manga_from_db(db, r)
+        if x['status'] == "error":
+            return x
+    return {'message': "update successful"}

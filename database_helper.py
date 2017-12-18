@@ -64,7 +64,7 @@ def get_titles_with_alias():
     t = Manga.query.all()
     titles = {re.sub('[^\w]', '', x.title).lower(): x.id for x in t}
     a = Alias.query.all()
-    alias = {x.title: x.manga_id for x in a}
+    alias = {(x.title,x.publisher): x.manga_id for x in a}
     return {**titles, **alias}
 
 
@@ -98,21 +98,25 @@ def insert(db, values):
 
 
 def insert_manga(db, _manga):
-    _manga['volumes'] = int(_manga['volumes'])
-    _manga['released'] = int(_manga['released'])
-    _manga['publisher'] = Publisher(_manga['publisher'])
-    _manga['status'] = Status(_manga['status'])
-    _manga['author'] = ','.join(_manga['author'])
-    _manga['artist'] = ','.join(_manga['artist'])
-    _manga['genre'] = ','.join(_manga['genre'])
+    try:
+        _manga['volumes'] = int(_manga['volumes'])
+        _manga['released'] = int(_manga['released'])
+        _manga['publisher'] = Publisher(_manga['publisher'])
+        _manga['status'] = Status(_manga['status'])
+        _manga['author'] = ','.join(_manga['author'])
+        _manga['artist'] = ','.join(_manga['artist'])
+        _manga['genre'] = ','.join(_manga['genre'])
 
-    from flask_app import Manga
-    m = Manga.query.filter(Manga.id == _manga['id']).first()
-    if not m:
-        m = Manga(_manga)
-        db.session.add(m)
-        db.session.commit()
-
+        from flask_app import Manga
+        m = Manga.query.filter(Manga.id == _manga['id']).first()
+        if not m:
+            m = Manga(_manga)
+            db.session.add(m)
+            db.session.commit()
+        return {'status': 'OK', 'message': '{} added'.format(_manga['title'])}
+    except Exception:
+        return {'status': 'error',
+                'message': traceback.format_exc()}
 
 def insert_alias(db, manga_id, alias):
     from flask_app import Alias
@@ -222,6 +226,29 @@ def update_manga_from_release(db, release):
                 'message': traceback.format_exc()}
 
 
+def update_manga_from_db(db, release):
+    try:
+        m = release.manga
+        t = release.yearweek
+        now = int(str(datetime.now().isocalendar()[0])+"{:02}".format(datetime.now().isocalendar()[1]))
+        if t <= now:
+            if release.volume >= m.released:
+                m.released = release.volume
+                if release.volume:
+                    m.cover = release.cover
+            if release.volume == 1 and m.status == Status.TBA:
+                m.status = Status.Ongoing
+            if release.volume == m.volumes and m.complete:
+                m.status = Status.Complete
+            db.session.commit()
+        return {'status': 'OK',
+                'message': 'manga {} updated'.format_map(m.title)}
+    except Exception:
+        return {'status': 'Error',
+                'source': '{}-{}-{}'.format(release.manga.title, release.volume, release.release_date),
+                'message': traceback.format_exc()}
+
+
 def update_manga(db, values):
     from flask_app import Manga
     m = Manga.query.filter(Manga.id == values['id']).first()
@@ -244,3 +271,4 @@ def update_manga(db, values):
         return {'status': 'Error',
                 'source': m.title,
                 'message': traceback.format_exc()}
+
