@@ -283,7 +283,7 @@ def logout():
 def manga():
     manga_list = db_helper.get_manga()
     if session.get('logged_in', False):
-        user_manga = db_helper.get_user_manga(session.get('username'))
+        user_manga = db_helper.get_user_manga(session.get('user_id'))
         return render_template('manga.html', MANGA_LIST=manga_list, USER_LIST=user_manga)
     return render_template('manga.html', MANGA_LIST=manga_list)
 
@@ -297,7 +297,7 @@ def manga_item(manga_id):
         collection = db_helper.get_collection(manga_id)
         release_list = db_helper.get_releases_by_id(manga_id)
         if session.get('logged_in', False):
-            user_collection = db_helper.get_user_collection(session.get('username'))
+            user_collection = db_helper.get_user_collection(session.get('user_id'))
             return render_template('item/manga.html', MANGA=_manga, COLLECTION=collection, RELEASE_LIST=release_list,
                                    USER_COLLECTION=user_collection)
     except Exception as e:
@@ -369,7 +369,7 @@ def releases():
     releases_next = db_helper.get_releases_by_week(_at=yearweek_next)
     releases_future = db_helper.get_releases_by_week(_from=yearweek_future)
 
-    if session.get('logged_id', False):
+    if session.get('logged_in', False):
         user_manga = db_helper.get_user_manga(session.get('user_id'))
         user_collection = db_helper.get_user_collection(session.get('user_id'))
         releases_prev = db_helper.filter_releases_by_user(releases_prev, user_manga, user_collection)
