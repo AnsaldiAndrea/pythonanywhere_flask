@@ -9,7 +9,7 @@ from static.types.enumtypes import Publisher, Status
 
 
 def to_yearweek(date):
-    return int(str(date.isocalendar()[0] + "{:02}".format(date.isocalendar()[1])))
+    return int(str(date.isocalendar()[0]) + "{:02}".format(date.isocalendar()[1]))
 
 
 def manga_to_dict(manga):
