@@ -8,6 +8,10 @@ from sqlalchemy.exc import IntegrityError
 from static.types.enumtypes import Publisher, Status
 
 
+def to_yearweek(date):
+    return int(str(date.isocalendar()[0] + "{:02}".format(date.isocalendar()[1])))
+
+
 def manga_to_dict(manga):
     return {'id': manga.id,
             'title': manga.title,
@@ -21,6 +25,15 @@ def manga_to_dict(manga):
             'genre': manga.genre,
             'complete': manga.complete,
             'cover': manga.cover}
+
+
+def release_to_dict(release):
+    return {'id': release.manga_id,
+            'subtitle': release.subtitle,
+            'volume': release.volume,
+            'release_date': release.release_date,
+            'price': release.price,
+            'cover': release.cover}
 
 
 def register_user(db, form):
@@ -59,13 +72,54 @@ def log_in(request, session):
             return {'status': 'Error', 'message': 'Invalid Passord', 'level': 'danger'}
 
 
+def get_manga():
+    from flask_app import Manga
+    return Manga.query.order_by(Manga.title).all()
+
+
+def get_manga_by_id(manga_id):
+    from flask_app import Manga
+    return Manga.query.filter(Manga.id==manga_id).first()
+
+
 def get_titles_with_alias():
     from flask_app import Manga, Alias
     t = Manga.query.all()
     titles = {(re.sub('[^\w]', '', x.title).lower(), x.publisher): x.id for x in t}
     a = Alias.query.all()
-    alias = {(x.title,x.manga.publisher): x.manga_id for x in a}
+    alias = {(x.title, x.manga.publisher): x.manga_id for x in a}
     return {**titles, **alias}
+
+
+def get_user_manga(user_id):
+    from flask_app import UserCollection
+    manga_ids = UserCollection.query.filter(UserCollection.user_id == user_id).distinct()
+    return [x.manga_id for x in manga_ids]
+
+
+def get_user_collection(user_id):
+    from flask_app import UserCollection
+    collection = UserCollection.query.filter(UserCollection.user_id == user_id).all()
+    return [(x.manga_id, x.volume) for x in collection]
+
+
+def get_releases_by_week(_from=None, _to=None, _at=None):
+    from flask_app import Releases
+    return Releases.query.filter(Releases.bounds(_from=_from, _to=_to, _at=_at)).order_by(Releases.release_date).all()
+
+
+def get_releases_by_id(manga_id):
+    from flask_app import Releases
+    return Releases.query.filter(Releases.manga_id == manga_id).order_by(Releases.release_date).all()
+
+
+def filter_releases_by_user(release_list, user_manga, user_collection):
+    return [x for x in release_list if (x.manga_id in user_manga) and ((x.manga_id, x.volume) not in user_collection)]
+
+
+def get_collection(manga_id):
+    from flask_app import Collection
+    return Collection.query.filter(Collection.manga_id==manga_id).order_by(Collection.volume).all()
 
 
 def insert(db, values):
@@ -118,13 +172,19 @@ def insert_manga(db, _manga):
         return {'status': 'error',
                 'message': traceback.format_exc()}
 
+
 def insert_alias(db, manga_id, alias):
     from flask_app import Alias
     a = Alias.query.filter(Alias.manga_id == manga_id, Alias.title == alias).first()
     if not a:
-        a = Alias(manga_id, alias)
-        db.session.add(a)
-        db.session.commit()
+        try:
+            a = Alias(manga_id, alias)
+            db.session.add(a)
+            db.session.commit()
+            return {'status': 'OK', 'message': 'alias added'}
+        except Exception:
+            return {'status': 'error', 'message': traceback.format_exc()}
+    return {'status': 'OK', 'message': 'alias already present'}
 
 
 def insert_release(db, release):
@@ -230,7 +290,7 @@ def update_manga_from_db(db, release):
     try:
         m = release.manga
         t = release.yearweek
-        now = int(str(datetime.now().isocalendar()[0])+"{:02}".format(datetime.now().isocalendar()[1]))
+        now = int(str(datetime.now().isocalendar()[0]) + "{:02}".format(datetime.now().isocalendar()[1]))
         if t <= now:
             if release.volume >= m.released:
                 m.released = release.volume
@@ -271,4 +331,3 @@ def update_manga(db, values):
         return {'status': 'Error',
                 'source': m.title,
                 'message': traceback.format_exc()}
-

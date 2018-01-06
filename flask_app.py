@@ -86,8 +86,7 @@ class Releases(db.Model):
         self.release_date = data['release_date']
         self.price = data['price']
         self.cover = data['cover']
-        self.yearweek = int(
-            str(data['release_date'].isocalendar[0]) + "{:02}".format(data['release_date'].isocalendar[1]))
+        self.yearweek = db_helper.to_yearweek(data['release_date'])
 
     manga_id = db.Column(db.String(16), db.ForeignKey('manga.id'), primary_key=True)
     manga = db.relationship("Manga", backref=db.backref("releases", uselist=False))
@@ -282,32 +281,25 @@ def logout():
 
 @app.route("/manga")
 def manga():
-    # try:
-    m = Manga.query.order_by(Manga.title).all()
+    manga_list = db_helper.get_manga()
     if session.get('logged_in', False):
-        u = UserManga.query.filter_by(user_id=session['user_id']).all()
-        ul = [x.manga_id for x in u]
-        return render_template('manga.html', MANGA_LIST=m, USER_LIST=ul)
-    return render_template('manga.html', MANGA_LIST=m)
-    # except Exception as e:
-    #    return str(e)
+        user_manga = db_helper.get_user_manga(session.get('username'))
+        return render_template('manga.html', MANGA_LIST=manga_list, USER_LIST=user_manga)
+    return render_template('manga.html', MANGA_LIST=manga_list)
 
 
 @app.route("/manga/<string:manga_id>")
 def manga_item(manga_id):
-    user_collection = []
     try:
-        m = Manga.query.filter_by(id=manga_id).first()
-        collection = Collection.query.filter_by(manga_id=manga_id).join(Manga).order_by(Collection.volume).all()
-        release_list = Releases.query.filter_by(manga_id=manga_id).join(Manga).order_by(Releases.release_date).all()
+        _manga = db_helper.get_manga_by_id(manga_id)
+        if not _manga:
+            return abort(404, massage="No Manga with id={}".format(manga_id))
+        collection = db_helper.get_collection(manga_id)
+        release_list = db_helper.get_releases_by_id(manga_id)
         if session.get('logged_in', False):
-            user_c_raw = UserCollection.query.filter_by(user_id=session['user_id'], manga_id=manga_id).all()
-            user_collection = [(c.manga_id, c.volume) for c in user_c_raw]
-        if m is not None:
-            return render_template('item/manga.html', MANGA=m, COLLECTION=collection, RELEASE_LIST=release_list,
+            user_collection = db_helper.get_user_collection(session.get('username'))
+            return render_template('item/manga.html', MANGA=_manga, COLLECTION=collection, RELEASE_LIST=release_list,
                                    USER_COLLECTION=user_collection)
-        else:
-            return abort(404)
     except Exception as e:
         return str(e)
 
@@ -367,8 +359,36 @@ header = {'prev': 'Previous Weeks', 'this': 'This Week', 'next': 'Next Week', 'f
 
 @app.route("/releases")
 def releases():
-    data = Releases.query.join(Manga).order_by(Releases.release_date).all()
+    yearweek_now = db_helper.to_yearweek(datetime.now())
+    yearweek_prev = db_helper.to_yearweek(datetime.now() - timedelta(weeks=8))
+    yearweek_next = db_helper.to_yearweek(datetime.now() + timedelta(weeks=1))
+    yearweek_future = db_helper.to_yearweek(datetime.now() + timedelta(weeks=2))
 
+    releases_prev = db_helper.get_releases_by_week(_from=yearweek_prev, _to=yearweek_now)
+    releases_this = db_helper.get_releases_by_week(_at=yearweek_now)
+    releases_next = db_helper.get_releases_by_week(_at=yearweek_next)
+    releases_future = db_helper.get_releases_by_week(_from=yearweek_future)
+
+    if session.get('logged_id', False):
+        user_manga = db_helper.get_user_manga(session.get('user_id'))
+        user_collection = db_helper.get_user_collection(session.get('user_id'))
+        releases_prev = db_helper.filter_releases_by_user(releases_prev, user_manga, user_collection)
+        releases_this = db_helper.filter_releases_by_user(releases_this, user_manga, user_collection)
+        releases_next = db_helper.filter_releases_by_user(releases_next, user_manga, user_collection)
+        releases_future = db_helper.filter_releases_by_user(releases_future, user_manga, user_collection)
+
+    release_dict = {'prev': releases_prev,
+                    'this': releases_this,
+                    'next': releases_next,
+                    'future': releases_future}
+
+    return render_template('releases.html', RELEASE_DICT=release_dict, HEADER=header)
+
+
+@DeprecationWarning
+@app.route("/old_releases")
+def old_releases():
+    data = Releases.query.join(Manga).order_by(Releases.release_date).all()
     now = datetime.now()
     date_prev = now - timedelta(weeks=8)
     date_next = now + timedelta(weeks=1)
@@ -383,16 +403,7 @@ def releases():
         user_collection = [(c.manga_id, c.volume) for c in user_collection]
         user_manga = UserManga.query.filter(UserManga.user_id == session['user_id']).all()
         user_manga = [m.manga_id for m in user_manga]
-    """
-    week_dict = {'prev': Releases.query.filter(
-                    Releases.bounds(_from=-8, _to=0) and Releases.user(_collection=user_collection, _manga=user_manga)).all(),
-                 'this': Releases.query.filter(
-                    Releases.bounds(_at=0) and Releases.user(_collection=user_collection, _manga=user_manga)).all(),
-                 'next': Releases.query.filter(
-                    Releases.bounds(_at=1) and Releases.user(_collection=user_collection, _manga=user_manga)).all(),
-                 'future': Releases.query.filter(
-                    Releases.bounds(_from=2) and Releases.user(_collection=user_collection, _manga=user_manga)).all()}
-    """
+
     week_dict = {'prev': [], 'this': [], 'next': [], 'future': []}
     for r in data:
         if (r.manga_id, r.volume) in user_collection or (user_manga and r.manga_id not in user_manga):
@@ -536,6 +547,7 @@ class ApiMangaId(Resource):
         data = Manga.query.filter(Manga.id == manga_id).first()
         return json.dumps(db_helper.manga_to_dict(data), ensure_ascii=False)
 
+
 class ApiManga(Resource):
     def get(self):
         data = Manga.query.all()
@@ -548,8 +560,25 @@ class ApiManga(Resource):
         return {'message': x['message']}
 
 
-api.add_resource(ApiMangaId, '/api/manga/<string:manga_id>')
-api.add_resource(ApiManga, '/api/manga')
+class ApiMangaUpdate(Resource):
+    def post(self):
+        x = db_helper.update_manga(db, request.get_json())
+        if x['status'] == 'error':
+            return abort(500, message=x['message'])
+        return {'message': x['message']}
+
+
+class ApiAlias(Resource):
+    def get(self, manga_id):
+        alias = Alias.query.filter(Alias.manga_id == manga_id).all()
+        alias_list = [x.title for x in alias]
+        return [alias.manga.title, alias_list]
+
+    def post(self):
+        x = db_helper.insert_alias(db, request.get_json()['id'], request.get_json()['alias'])
+        if x['status'] == 'error':
+            return abort(500, message=x['message'])
+        return {'message': x['message']}
 
 
 class ApiParser(Resource):
@@ -557,50 +586,17 @@ class ApiParser(Resource):
         return ReleaseParser.parse_single(request.get_json())
 
 
+class ApiReleases(Resource):
+    def post(self):
+        x = db_helper.insert_release(db, request.get_json())
+        if x['status'] == 'error':
+            return abort(500, message=x['message'])
+        return {'message': x['message']}
+
+
+api.add_resource(ApiMangaId, '/api/manga/<string:manga_id>')
+api.add_resource(ApiManga, '/api/manga')
+api.add_resource(ApiMangaUpdate, '/api/manga/update')
+api.add_resource(ApiAlias, '/api/alias/<string:manga_id>')
 api.add_resource(ApiParser, '/api/releases/parse')
-
-"""----------------------------------------"""
-
-"""
-@app.route("/api/manga", methods=["GET", "POST"])
-def api_manga():
-    if request.method == 'POST':
-        data = request.get_json()
-        return db_helper.insert(db, data)
-    else:
-        m = Manga.query.all()
-        s = json.dumps([db_helper.manga_to_dict(x) for x in m], ensure_ascii=False)
-        with open('api.log', 'w+') as f:
-            f.write(s)
-        return s
-
-
-@app.route("/api/manga/id", methods=["GET"])
-def api_id():
-    m = Manga.query.all()
-    return json.dumps({"id": [x.id for x in m]})
-
-
-@app.route("/api/parse_releases", methods=["POST"])
-def api_parse_releases():
-    data = request.get_json()
-    return json.dumps(ReleaseParser(db).parse(data))
-
-
-@app.route("/api/alias", methods=["GET"])
-def api_alias():
-    return json.dumps(db_helper.get_titles_with_alias(), indent=4, ensure_ascii=False)
-
-
-@app.route("/api/update_manga", methods=["POST"])
-def api_update_manga():
-    r = db_helper.update_manga(db, request.get_json())
-    return json.dumps(r)
-
-
-@app.route("/api/test", methods=["GET"])
-def api_test():
-    r = Releases.query.filter(Releases.bounds(_from=201749, _to=201751)).order_by(Releases.release_date).all()
-    return json.dumps([{"id": x.manga.title, "volume": x.volume, "release_date": x.release_date} for x in r])
-
-"""
+api.add_resource(ApiReleases, '/api/releases')
