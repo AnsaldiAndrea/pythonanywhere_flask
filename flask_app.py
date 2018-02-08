@@ -658,8 +658,7 @@ class ApiReleases(Resource):
 
 class ApiMangaUpdateFrom(Resource):
     def get(self, yearweek):
-        j = request.get_json()
-        if yearweek < 0:
+        if not yearweek:
             return abort(500, message='bad input')
         for r in Releases.query.filter(Releases.yearweek >= yearweek).all():
             x = db_helper.update_manga_from_db(db, r)
