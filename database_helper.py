@@ -79,7 +79,7 @@ def get_manga():
 
 def get_manga_by_id(manga_id):
     from flask_app import Manga
-    return Manga.query.filter(Manga.id==manga_id).first()
+    return Manga.query.filter(Manga.id == manga_id).first()
 
 
 def get_titles_with_alias():
@@ -92,15 +92,28 @@ def get_titles_with_alias():
 
 
 def get_user_manga(user_id):
-    from flask_app import UserCollection
-    manga_ids = UserCollection.query.filter(UserCollection.user_id == user_id).distinct()
+    from flask_app import UserManga
+    manga_ids = UserManga.query.filter(UserManga.user_id == user_id).distinct()
     return [x.manga_id for x in manga_ids]
+
+
+def is_user_watching(user_id, manga_id):
+    from flask_app import UserManga
+    m = UserManga.query.filter(UserManga.user_id == user_id, UserManga.manga_id == manga_id).first()
+    return m
 
 
 def get_user_collection(user_id):
     from flask_app import UserCollection
     collection = UserCollection.query.filter(UserCollection.user_id == user_id).all()
     return [(x.manga_id, x.volume) for x in collection]
+
+
+def is_volume_in_user_library(user_id, manga_id, volume):
+    from flask_app import UserCollection
+    return UserCollection.query.filter(UserCollection.user_id == user_id,
+                                       UserCollection.manga_id == manga_id,
+                                       UserCollection.volume == volume).first()
 
 
 def get_releases_by_week(_from=None, _to=None, _at=None):
@@ -119,7 +132,12 @@ def filter_releases_by_user(release_list, user_manga, user_collection):
 
 def get_collection(manga_id):
     from flask_app import Collection
-    return Collection.query.filter(Collection.manga_id==manga_id).order_by(Collection.volume).all()
+    return Collection.query.filter(Collection.manga_id == manga_id).order_by(Collection.volume).all()
+
+
+def get_volume(manga_id, volume):
+    from flask_app import Collection
+    return Collection.query.filter(Collection.manga_id == manga_id, Collection.volume == volume).first()
 
 
 def insert(db, values):

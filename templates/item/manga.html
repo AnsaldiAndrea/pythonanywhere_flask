@@ -4,29 +4,22 @@
 <script type="text/javascript">
     $(function() {
         $("a#buy").click(function() {
-            var is_buy = $(this).attr("data-buy");
+            var is_in_library = ($(this).attr("data-buy")==="true");
             var button = $(this);
             var parent = $(this).parent().parent();
-            var data = {"manga_id":{{MANGA.id}}, "volume":$(this).attr("name"), "buy":is_buy};
-            console.log(JSON.stringify(data));
+            var data = {"manga_id":{{MANGA.id}}, "volume":$(this).attr("name")};
             $.ajax({
-                type : "POST",
-                url : $SCRIPT_ROOT + "/releases/" + data['manga_id'] + "/" + data['volume'] + (data['buy']==='true'? "/delete":"/add"),
+                type : is_in_library?"DELETE":"POST",
+                url : $SCRIPT_ROOT + "/user/collection/" + data['manga_id'] + "/" + data['volume'],
                 contentType: 'application/json;charset=UTF-8',
                 success: function(response){
                     console.log(response);
-                    var response_dict = JSON.parse(response);
-                    if(response_dict.success){
-                        if(is_buy==='false'){
-                            button.attr("data-buy","true");
-                            parent.addClass("info")
-                        } else {
-                            button.attr("data-buy","false");
-                            parent.removeClass("info")
-                        }
-                    }
-                    else {
-                        console.log(response_dict.error)
+                    if(!is_in_library){
+                        button.attr("data-buy","true");
+                        parent.addClass("info")
+                    } else {
+                        button.attr("data-buy","false");
+                        parent.removeClass("info")
                     }
                 },
                 error: function(error){

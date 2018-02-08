@@ -300,10 +300,39 @@ def manga_item(manga_id):
             user_collection = db_helper.get_user_collection(session.get('user_id'))
             return render_template('item/manga.html', MANGA=_manga, COLLECTION=collection, RELEASE_LIST=release_list,
                                    USER_COLLECTION=user_collection)
+        return render_template('item/manga.html', MANGA=_manga, COLLECTION=collection, RELEASE_LIST=release_list,
+                               USER_COLLECTION=[])
     except Exception as e:
         return str(e)
 
+@app.route("/user/manga/<string:manga_id>", methods=["POST", "DELETE"])
+@is_logged_in
+def user_action_manga(manga_id):
+    m = db_helper.get_manga_by_id(manga_id)
+    if m:
+        # POST REQUEST: ADD MANGA TO USER WATCHLIST
+        if request.method=="POST":
+            try:
+                if not db_helper.is_user_watching(session['user_id'], manga_id):
+                    um = UserManga(session['user_id'], manga_id)
+                    db.session.add(um)
+                    db.session.commit()
+            except Exception as e:
+                return abort(500, message="an error occured:\n{}".format(traceback.format_exc(e)))
+        # DELETE REQUEST: REMOVE MANGA FROM USER WATCHLIST
+        elif request.method=="DELETE":
+            try:
+                um = db_helper.is_user_watching(session['user_id'], manga_id)
+                if um:
+                    db.session.delete(um)
+                    db.session.commit()
+            except Exception as e:
+                return abort(500, message="an error occured:\n{}".format(traceback.format_exc(e)))
+    else:
+        return abort(404, message="cannot find manga with id={}".format(manga_id))
+    return 200
 
+@DeprecationWarning
 @app.route("/manga/<string:manga_id>/add", methods=["POST"])
 @is_logged_in
 def add_manga(manga_id):
@@ -317,6 +346,7 @@ def add_manga(manga_id):
         return json.dumps({'success': False, 'error': str(e)})
 
 
+@DeprecationWarning
 @app.route("/manga/<string:manga_id>/delete", methods=["POST"])
 @is_logged_in
 def delete_manga(manga_id):
@@ -330,6 +360,35 @@ def delete_manga(manga_id):
         return json.dumps({'success': False, 'error': str(e)})
 
 
+@app.route("/user/collection/<string:manga_id>/<int:volume>", methods=["POST", "DELETE"])
+@is_logged_in
+def user_action_collection(manga_id, volume):
+    c = db_helper.get_volume(manga_id, volume)
+    if c:
+        # POST REQUEST: ADD VOLUME TO USER LIBRARY
+        if request.method == "POST":
+            try:
+                if not db_helper.is_volume_in_user_library(session['user_id'], manga_id, volume):
+                    uc = UserCollection(session['user_id'], manga_id, volume)
+                    db.session.add(uc)
+                    db.session.commit()
+            except Exception as e:
+                return abort(500, message="an error occured:\n{}".format(traceback.format_exc(e)))
+        # DELETE REQUEST: REMOVE VOLUME FROM USER LIBRARY
+        elif request.method == "DELETE":
+            try:
+                uc = db_helper.is_volume_in_user_library(session['user_id'], manga_id, volume)
+                if uc:
+                    db.session.delete(uc)
+                    db.session.commit()
+            except Exception as e:
+                return abort(500, message="an error occured:\n{}".format(traceback.format_exc(e)))
+    else:
+        return abort(404, message="cannot find volume with id={} and volume={}" .format(manga_id, volume))
+    return 200
+
+
+@DeprecationWarning
 @app.route("/releases/<string:manga_id>/<int:volume>/add", methods=["POST"])
 @is_logged_in
 def add_volume(manga_id, volume):
@@ -342,6 +401,7 @@ def add_volume(manga_id, volume):
         return json.dumps({'success': False, 'error': str(e)})
 
 
+@DeprecationWarning
 @app.route("/releases/<string:manga_id>/<int:volume>/delete", methods=["POST"])
 @is_logged_in
 def delete_volume(manga_id, volume):
