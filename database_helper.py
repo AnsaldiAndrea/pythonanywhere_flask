@@ -223,8 +223,7 @@ def insert_release(db, release):
     if not u['status'] == 'OK':
         return u
     u = update_manga_from_release(db, release)
-    if not u['status'] == 'OK':
-        return u
+    return u
 
 
 def insert_collection_item(db, item):
