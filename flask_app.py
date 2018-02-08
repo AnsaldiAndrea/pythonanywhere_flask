@@ -617,7 +617,7 @@ class ApiManga(Resource):
 
     def post(self):
         x = db_helper.insert_manga(db, request.get_json())
-        if x['statust'] == 'error':
+        if x['status'] == 'error':
             return abort(500, message=x['message'])
         return {'message': x['message']}
 
