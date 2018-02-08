@@ -305,13 +305,14 @@ def manga_item(manga_id):
     except Exception as e:
         return str(e)
 
+
 @app.route("/user/manga/<string:manga_id>", methods=["POST", "DELETE"])
 @is_logged_in
 def user_action_manga(manga_id):
     m = db_helper.get_manga_by_id(manga_id)
     if m:
         # POST REQUEST: ADD MANGA TO USER WATCHLIST
-        if request.method=="POST":
+        if request.method == "POST":
             try:
                 if not db_helper.is_user_watching(session['user_id'], manga_id):
                     um = UserManga(session['user_id'], manga_id)
@@ -320,7 +321,7 @@ def user_action_manga(manga_id):
             except Exception as e:
                 return abort(500, message="an error occured:\n{}".format(traceback.format_exc(e)))
         # DELETE REQUEST: REMOVE MANGA FROM USER WATCHLIST
-        elif request.method=="DELETE":
+        elif request.method == "DELETE":
             try:
                 um = db_helper.is_user_watching(session['user_id'], manga_id)
                 if um:
@@ -331,6 +332,7 @@ def user_action_manga(manga_id):
     else:
         return abort(404, message="cannot find manga with id={}".format(manga_id))
     return 200
+
 
 @DeprecationWarning
 @app.route("/manga/<string:manga_id>/add", methods=["POST"])
@@ -384,7 +386,7 @@ def user_action_collection(manga_id, volume):
             except Exception as e:
                 return abort(500, message="an error occured:\n{}".format(traceback.format_exc(e)))
     else:
-        return abort(404, message="cannot find volume with id={} and volume={}" .format(manga_id, volume))
+        return abort(404, message="cannot find volume with id={} and volume={}".format(manga_id, volume))
     return 200
 
 
@@ -654,9 +656,22 @@ class ApiReleases(Resource):
         return {'message': x['message']}
 
 
+class ApiMangaUpdateFrom(Resource):
+    def get(self, yearweek):
+        j = request.get_json()
+        if yearweek < 0:
+            return abort(500, message='bad input')
+        for r in Releases.query.filter(Releases.yearweek >= yearweek).all():
+            x = db_helper.update_manga_from_db(db, r)
+            if x['status'] == 'error':
+                return abort(500, message=x['message'])
+        return {'message': 'updated all manga'}
+
+
 api.add_resource(ApiMangaId, '/api/manga/<string:manga_id>')
 api.add_resource(ApiManga, '/api/manga')
 api.add_resource(ApiMangaUpdate, '/api/manga/update')
+api.add_resource(ApiMangaUpdateFrom, '/api/manga/update/from/<string:yearweek>')
 api.add_resource(ApiAlias, '/api/alias/<string:manga_id>')
 api.add_resource(ApiParser, '/api/releases/parse')
 api.add_resource(ApiReleases, '/api/releases')
