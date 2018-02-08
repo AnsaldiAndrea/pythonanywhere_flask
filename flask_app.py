@@ -618,7 +618,7 @@ class ApiManga(Resource):
     def post(self):
         x = db_helper.insert_manga(db, request.get_json())
         if x['status'] == 'error':
-            return abort(500, message=x['message'])
+            return abort(500, x['message'])
         return {'message': x['message']}
 
 
@@ -626,7 +626,7 @@ class ApiMangaUpdate(Resource):
     def post(self):
         x = db_helper.update_manga(db, request.get_json())
         if x['status'] == 'error':
-            return abort(500, message=x['message'])
+            return abort(500, x['message'])
         return {'message': x['message']}
 
 
@@ -639,7 +639,7 @@ class ApiAlias(Resource):
     def post(self):
         x = db_helper.insert_alias(db, request.get_json()['id'], request.get_json()['alias'])
         if x['status'] == 'error':
-            return abort(500, message=x['message'])
+            return abort(500, x['message'])
         return {'message': x['message']}
 
 
@@ -652,7 +652,7 @@ class ApiReleases(Resource):
     def post(self):
         x = db_helper.insert_release(db, request.get_json())
         if x['status'] == 'error':
-            return abort(500, message=x['message'])
+            return abort(500, x['message'])
         return {'message': x['message']}
 
 
@@ -663,7 +663,7 @@ class ApiMangaUpdateFrom(Resource):
         for r in Releases.query.filter(Releases.yearweek >= yearweek).all():
             x = db_helper.update_manga_from_db(db, r)
             if x['status'] == 'error':
-                return abort(500, message=x['message'])
+                return abort(500, x['message'])
         return {'message': 'updated all manga'}
 
 
