@@ -44,8 +44,8 @@ class Manga(db.Model):
         self.original = data.get('original', '')
         self.publisher = data['publisher']
         self.status = data['status']
-        self.authors = data['authors']
-        self.artists = data['artists']
+        self.authors = data['author']
+        self.artists = data['artist']
         self.genre = data['genre']
         self.complete = data['complete']
         self.cover = data['cover']
