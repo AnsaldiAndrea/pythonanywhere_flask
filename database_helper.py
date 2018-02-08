@@ -173,8 +173,8 @@ def insert_manga(db, _manga):
     try:
         _manga['volumes'] = int(_manga['volumes'])
         _manga['released'] = int(_manga['released'])
-        _manga['publisher'] = Publisher(_manga['publisher'])
-        _manga['status'] = Status(_manga['status'])
+        _manga['publisher'] = Publisher.get_Publisher(_manga['publisher'])
+        _manga['status'] = Status.get_Status(_manga['status'])
         _manga['author'] = ','.join(_manga['author'])
         _manga['artist'] = ','.join(_manga['artist'])
         _manga['genre'] = ','.join(_manga['genre'])
