@@ -72,6 +72,11 @@ def log_in(request, session):
             return {'status': 'Error', 'message': 'Invalid Passord', 'level': 'danger'}
 
 
+def get_ids():
+    from flask_app import Manga
+    return Manga.query(Manga.id).all()
+
+
 def get_manga():
     from flask_app import Manga
     return Manga.query.order_by(Manga.title).all()

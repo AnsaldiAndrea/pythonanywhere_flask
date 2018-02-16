@@ -604,9 +604,18 @@ def upload():
     return render_template('admin/upload.html')
 
 
+class ApiIds(Resource):
+    def get(self):
+        data = db_helper.get_ids()
+        if not data:
+            return abort(505, 'unexpected error')
+        return json.dumps({'id':data})
+
 class ApiMangaId(Resource):
     def get(self, manga_id):
-        data = Manga.query.filter(Manga.id == manga_id).first()
+        data = db_helper.get_manga_by_id(manga_id)
+        if not data:
+            return abort(404, 'no manga with id = {}'.format(manga_id))
         return json.dumps(db_helper.manga_to_dict(data), ensure_ascii=False)
 
 
@@ -628,6 +637,17 @@ class ApiMangaUpdate(Resource):
         if x['status'] == 'error':
             return abort(500, x['message'])
         return {'message': x['message']}
+
+
+class ApiMangaUpdateFrom(Resource):
+    def get(self, yearweek):
+        if not yearweek:
+            return abort(500, message='bad input')
+        for r in Releases.query.filter(Releases.yearweek >= yearweek).all():
+            x = db_helper.update_manga_from_db(db, r)
+            if x['status'] == 'error':
+                return abort(500, x['message'])
+        return {'message': 'updated all manga'}
 
 
 class ApiAlias(Resource):
@@ -656,17 +676,7 @@ class ApiReleases(Resource):
         return {'message': x['message']}
 
 
-class ApiMangaUpdateFrom(Resource):
-    def get(self, yearweek):
-        if not yearweek:
-            return abort(500, message='bad input')
-        for r in Releases.query.filter(Releases.yearweek >= yearweek).all():
-            x = db_helper.update_manga_from_db(db, r)
-            if x['status'] == 'error':
-                return abort(500, x['message'])
-        return {'message': 'updated all manga'}
-
-
+api.add_resource(ApiIds, '/api/ids')
 api.add_resource(ApiMangaId, '/api/manga/<string:manga_id>')
 api.add_resource(ApiManga, '/api/manga')
 api.add_resource(ApiMangaUpdate, '/api/manga/update')
