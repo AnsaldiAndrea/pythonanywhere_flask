@@ -74,7 +74,7 @@ def log_in(request, session):
 
 def get_ids():
     from flask_app import Manga
-    return Manga.query(Manga.id).all()
+    return Manga.query.with_entities(Manga.id).all()
 
 
 def get_manga():
