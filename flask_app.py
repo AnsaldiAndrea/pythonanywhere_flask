@@ -609,7 +609,7 @@ class ApiIds(Resource):
         data = db_helper.get_ids()
         if not data:
             return abort(505, 'unexpected error')
-        return json.dumps({'id':data})
+        return json.dumps(data)
 
 class ApiMangaId(Resource):
     def get(self, manga_id):
