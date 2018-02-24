@@ -1,0 +1,20 @@
+.fixed_glyph {
+    width: 5%
+}
+
+.fixed_img {
+    width: 100%;
+    height: auto;
+}
+
+.fixed_img_column {
+    width: 25%
+}
+
+.table > tbody > tr > td {
+    vertical-align: middle
+}
+
+.panel-body {
+    padding: 5px;
+}

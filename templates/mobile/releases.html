@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+
+{% block head %}
+    <title>Releases</title>
+    <script type="text/javascript" src="/static/script/releases.js"></script>
+    <link rel="stylesheet" type="text/css" href="/static/css/mobile/releases.css">
+{% endblock %}
+
+{% block body %}
+    <h2>Releases</h2>
+    <p>List of all available Releases</p>
+
+    {% for key,value in RELEASE_DICT.items() %}
+        <div class="panel-group">
+            <div class="panel panel-info">
+                <div class="panel-heading">{{ HEADER[key] }}</div>
+                <div class="panel-body">
+                    {% if value %}
+                        <table class="table">
+                        <thead>
+                        <tr>
+                            <th>Cover</th>
+                            <th>Details</th>
+                            {% if session.logged_in %}
+                                <th></th>
+                            {% endif %}
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for r in value %}
+                            <tr>
+                                <td class="fixed_img_column">
+                                    <img class="fixed_img" src="{{ r.cover }}"
+                                         onerror="this.src='/static/image/default.jpg'">
+                                </td>
+                                <td>
+                                    <div>
+                                        <span><strong><a>{{ r.title }}</a></strong></span>
+                                        <br>
+                                        <span><strong>Releases Date: </strong>{{ r.release_date.strftime("%d/%m/%Y") }}</span>
+                                        <br>
+                                        <span id="price_{{ key }}">{{ "{:10.2f}".format(r.price) }} €</span>
+                                    </div>
+                                </td>
+                                {% if session.logged_in %}
+                                <td>
+                                    <a onclick="buyVolume({{ r.id }}, {{ r.volume }}, {{ key }})"
+                                       class="btn btn-link {% if key in ['next','future'] %} disabled {% endif %}"
+                                       id='buy'>
+                                        <span class='glyphicon glyphicon-shopping-cart'></span>
+                                    </a>
+                                </td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                        <tr>
+                            <td></td>
+                            <td></td>
+                            <td id='sum_{{ key }}'>0.00 €</td>
+                            {% if session.logged_in %}
+                                <td></td>
+                            {% endif %}
+                        </tr>
+                        </tbody>
+                    {% else %}
+                        Empty
+                    {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+
+
+{% endblock %}

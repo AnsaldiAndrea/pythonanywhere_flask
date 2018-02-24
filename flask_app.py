@@ -4,6 +4,7 @@ from functools import wraps
 import traceback
 
 from flask import Flask, render_template, flash, redirect, url_for, session, request, abort, json, Markup
+from flask_mobility.decorators import mobile_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Resource, Api
 
@@ -420,7 +421,8 @@ header = {'prev': 'Previous Weeks', 'this': 'This Week', 'next': 'Next Week', 'f
 
 
 @app.route("/releases")
-def releases():
+@mobile_template('{mobile/}releases.html')
+def releases(template):
     yearweek_now = db_helper.to_yearweek(datetime.now())
     yearweek_prev = db_helper.to_yearweek(datetime.now() - timedelta(weeks=8))
     yearweek_next = db_helper.to_yearweek(datetime.now() + timedelta(weeks=1))
@@ -444,7 +446,7 @@ def releases():
                     'next': releases_next,
                     'future': releases_future}
 
-    return render_template('releases.html', RELEASE_DICT=release_dict, HEADER=header)
+    return render_template(template, RELEASE_DICT=release_dict, HEADER=header)
 
 
 @DeprecationWarning
