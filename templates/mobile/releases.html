@@ -35,18 +35,18 @@
                                 </td>
                                 <td>
                                     <div>
-                                        <span><strong><a>{{ r.title }}</a></strong></span>
+                                        <span><strong><a>{{ r.manga.title }} {{ r.volume }}</a></strong></span>
                                         <br>
                                         <span><strong>Releases Date: </strong>{{ r.release_date.strftime("%d/%m/%Y") }}</span>
                                         <br>
-                                        <span id="price_{{ key }}">{{ "{:10.2f}".format(r.price) }} €</span>
+                                        <span data-price="price_{{ key }}">{{ "{:10.2f}".format(r.price) }} €</span>
                                     </div>
                                 </td>
                                 {% if session.logged_in %}
                                 <td>
-                                    <a onclick="buyVolume({{ r.id }}, {{ r.volume }}, {{ key }})"
-                                       class="btn btn-link {% if key in ['next','future'] %} disabled {% endif %}"
-                                       id='buy'>
+                                    <a class="btn btn-link {% if key in ['next','future'] %} disabled {% endif %}"
+                                       id='buy'
+                                       data-id="{{ r.manga_id }}" data-volume="{{ r.volume }}" data-week="{{ key }}">
                                         <span class='glyphicon glyphicon-shopping-cart'></span>
                                     </a>
                                 </td>
@@ -54,8 +54,7 @@
                             </tr>
                         {% endfor %}
                         <tr>
-                            <td></td>
-                            <td></td>
+                            <td><strong>Total =</strong></td>
                             <td id='sum_{{ key }}'>0.00 €</td>
                             {% if session.logged_in %}
                                 <td></td>

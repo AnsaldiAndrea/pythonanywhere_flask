@@ -5,6 +5,7 @@ import traceback
 
 from flask import Flask, render_template, flash, redirect, url_for, session, request, abort, json, Markup
 from flask_mobility.decorators import mobile_template
+from flask_mobility import Mobility
 from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Resource, Api
 
@@ -17,6 +18,7 @@ from static.types.enumtypes import Publisher, Status
 
 app = Flask(__name__)
 api = Api(app)
+Mobility(app)
 app.secret_key = os.getenv('SECRET_KEY')
 app.config["DEBUG"] = True
 
@@ -376,6 +378,8 @@ def user_action_collection(manga_id, volume):
                     db.session.add(uc)
                     db.session.commit()
             except Exception as e:
+                with open('rel.log', 'w+') as f:
+                    f.write("...\n"+traceback.format_exc(e))
                 return abort(500, message="an error occured:\n{}".format(traceback.format_exc(e)))
         # DELETE REQUEST: REMOVE VOLUME FROM USER LIBRARY
         elif request.method == "DELETE":
@@ -388,7 +392,7 @@ def user_action_collection(manga_id, volume):
                 return abort(500, message="an error occured:\n{}".format(traceback.format_exc(e)))
     else:
         return abort(404, message="cannot find volume with id={} and volume={}".format(manga_id, volume))
-    return 200
+    return "OK", 200, {'ContentType':'application/json'}
 
 
 @DeprecationWarning

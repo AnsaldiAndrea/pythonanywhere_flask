@@ -1,22 +1,60 @@
+$(function () {
+    $("a#buy").click(function() {
+       var id = $(this).attr("data-id");
+       var volume = $(this).attr("data-volume");
+       var week = $(this).attr("data-week");
+       var row = $(this).parent().closest("tr");
+       $.ajax({
+           type: "POST",
+           url: $SCRIPT_ROOT + "user/collection/" + id + "/" + volume,
+           contentType: "application/json;charset=UTF-8",
+           success: function () {
+               console.log("success");
+               var body = row.parent();
+               console.log("body");
+               row.hide();
+               console.log("hide");
+               if(body.children().length<2) {
+                    var table = body.parent();
+                    var panel = table.parent();
+                    table.hide();
+                    panel.text("Empty")
+               }
+               console.log("calculate");
+               calculate_all();
+               console.log("done");
+           },
+           error: function (response) {
+                alert(response)
+           }
+       })
+    })
+});
+
 function buyVolume(id, volume, week) {
    var row = $(this).parent().closest("tr");
    $.ajax({
        type: "POST",
        url: $SCRIPT_ROOT + "user/collection/" + id + "/" + volume,
        contentType: "application/json;charset=UTF-8",
-       success: function (data2) {
+       success: function () {
+           console.log("success");
            var body = row.parent();
-           row.remove();
+           console.log("body");
+           row.hide();
+           console.log("hide");
            if(body.children().length<2) {
                 var table = body.parent();
                 var panel = table.parent();
-                table.remove();
+                table.hide();
                 panel.text("Empty")
            }
-           calculate_price("#price_"+week, "#sum_"+week);
+           console.log("calculate");
+           calculate_all();
+           console.log("done");
        },
-       error: function () {
-            alert("A problem occurred while processing the request.")
+       error: function (response) {
+            alert(response)
        }
    })
 }
@@ -33,10 +71,10 @@ function calculate_price(source,destination) {
 }
 
 function calculate_all() {
-    calculate_price($("#price_prev"),$("#sum_prev"));
-    calculate_price($("#price_this"),$("#sum_this"));
-    calculate_price($("#price_next"),$("#sum_next"));
-    calculate_price($("#price_future"),$("#sum_future"));
+    calculate_price($("[data-price='price_prev']"),$("#sum_prev"));
+    calculate_price($("[data-price='price_this']"),$("#sum_this"));
+    calculate_price($("[data-price='price_next']"),$("#sum_next"));
+    calculate_price($("[data-price='price_future']"),$("#sum_future"));
 }
 $(function() {
     calculate_all()
