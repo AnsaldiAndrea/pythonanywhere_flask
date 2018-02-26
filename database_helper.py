@@ -254,9 +254,7 @@ def insert_release(db, release):
         else:
             if not is_cover_null(release['cover']):
                 r.cover = release['cover']
-
-            if release.release_date == datetime(1900, 1, 1):
-                r.release_date = release['release_date']
+            db.session.commit()
     u = update_collection(db, release)
     if not u['status'] == 'OK':
         return u
