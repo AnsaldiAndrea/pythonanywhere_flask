@@ -223,18 +223,40 @@ def insert_release(db, release):
     release['release_date'] = datetime.strptime(release['release_date'], '%Y-%m-%d')
     release['price'] = float(release['price'])
 
-    r = Releases.query.filter(Releases.manga_id == release['id'],
-                              Releases.volume == release['volume'],
-                              Releases.release_date == release['release_date']).first()
-    if not r:
-        r = Releases(release)
-        db.session.add(r)
-        db.session.commit()
-    else:
+    if release['publisher'] == 'jpop':
         if is_cover_null(release['cover']):
-            r.cover=release['cover']
-        if release.release_date == datetime(1900, 1,1):
-            r.release_date=release['release_date']
+            r = Releases.query.filter(Releases.manga_id == release['id'],
+                                      Releases.volume == release['volume'],
+                                      Releases.release_date == datetime(1900, 1, 1)).first()
+            if r:
+                r.release_date = release['release_date']
+        else:
+            r = Releases.query.filter(Releases.manga_id == release['id'],
+                                      Releases.volume == release['volume'],
+                                      Releases.release_date != datetime(1900, 1, 1)).first()
+            if r:
+                r.cover = release['cover']
+        r = Releases.query.filter(Releases.manga_id == release['id'],
+                                  Releases.volume == release['volume'],
+                                  Releases.release_date == release['release_date']).first()
+        if not r:
+            r = Releases(release)
+            db.session.add(r)
+            db.session.commit()
+    else:
+        r = Releases.query.filter(Releases.manga_id == release['id'],
+                                  Releases.volume == release['volume'],
+                                  Releases.release_date == release['release_date']).first()
+        if not r:
+            r = Releases(release)
+            db.session.add(r)
+            db.session.commit()
+        else:
+            if not is_cover_null(release['cover']):
+                r.cover = release['cover']
+
+            if release.release_date == datetime(1900, 1, 1):
+                r.release_date = release['release_date']
     u = update_collection(db, release)
     if not u['status'] == 'OK':
         return u
