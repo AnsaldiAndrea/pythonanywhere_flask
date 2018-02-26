@@ -7,6 +7,11 @@ from sqlalchemy.exc import IntegrityError
 
 from static.types.enumtypes import Publisher, Status
 
+empty_cover = [
+    "no-photo",
+    "no_cover",
+]
+
 
 def to_yearweek(date):
     return int(str(date.isocalendar()[0]) + "{:02}".format(date.isocalendar()[1]))
@@ -225,6 +230,11 @@ def insert_release(db, release):
         r = Releases(release)
         db.session.add(r)
         db.session.commit()
+    else:
+        if is_cover_null(release['cover']):
+            r.cover=release['cover']
+        if release.release_date == datetime(1900, 1,1):
+            r.release_date=release['release_date']
     u = update_collection(db, release)
     if not u['status'] == 'OK':
         return u
@@ -233,6 +243,10 @@ def insert_release(db, release):
 
 
 def insert_collection_item(db, item):
+    """
+        helper method for collection item insert
+        does not check if item is already in database
+    """
     from flask_app import Collection
     try:
         item['volume'] = int(item['volume'])
@@ -272,7 +286,8 @@ def update_collection(db, values):
     try:
         c = Collection.query.filter(Collection.manga_id == values['id'], Collection.volume == values['volume']).first()
         if c:
-            c.cover = values['cover']
+            if not is_cover_null(c.cover):
+                c.cover = values['cover']
         else:
             insert_collection_item(db, values)
         db.session.commit()
@@ -354,3 +369,11 @@ def update_manga(db, values):
         return {'status': 'Error',
                 'source': m.title,
                 'message': traceback.format_exc()}
+
+
+def is_cover_null(cover):
+    if not cover: return True
+    for e in empty_cover:
+        if e in cover:
+            return True
+    return False
