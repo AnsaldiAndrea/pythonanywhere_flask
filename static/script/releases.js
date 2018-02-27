@@ -3,61 +3,28 @@ $(function () {
        var id = $(this).attr("data-id");
        var volume = $(this).attr("data-volume");
        var week = $(this).attr("data-week");
-       var row = $(this).parent().closest("tr");
+       var row = $(this).closest("tr");
        $.ajax({
            type: "POST",
            url: $SCRIPT_ROOT + "user/collection/" + id + "/" + volume,
            contentType: "application/json;charset=UTF-8",
            success: function () {
-               console.log("success");
                var body = row.parent();
-               console.log("body");
-               row.hide();
-               console.log("hide");
-               if(body.children().length<2) {
+               row.remove();
+               if(body.find("tr").length<2) {
                     var table = body.parent();
                     var panel = table.parent();
-                    table.hide();
-                    panel.text("Empty")
+                    table.remove();
+                    panel.text("Empty");
                }
-               console.log("calculate");
-               calculate_all();
-               console.log("done");
+               calculate_price($("[data-price='price_"+week+"']"),$("#sum_"+week+""));
            },
            error: function (response) {
-                alert(response)
+                alert(response);
            }
        })
     })
 });
-
-function buyVolume(id, volume, week) {
-   var row = $(this).parent().closest("tr");
-   $.ajax({
-       type: "POST",
-       url: $SCRIPT_ROOT + "user/collection/" + id + "/" + volume,
-       contentType: "application/json;charset=UTF-8",
-       success: function () {
-           console.log("success");
-           var body = row.parent();
-           console.log("body");
-           row.hide();
-           console.log("hide");
-           if(body.children().length<2) {
-                var table = body.parent();
-                var panel = table.parent();
-                table.hide();
-                panel.text("Empty")
-           }
-           console.log("calculate");
-           calculate_all();
-           console.log("done");
-       },
-       error: function (response) {
-            alert(response)
-       }
-   })
-}
 
 function calculate_price(source,destination) {
     var sum=0;
