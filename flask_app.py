@@ -16,17 +16,21 @@ from forms import RegisterForm, NewMangaForm, NewReleaseForm
 from release_parser import ReleaseParser
 from static.types.enumtypes import Publisher, Status
 
+from lxml import etree
+
 app = Flask(__name__)
 api = Api(app)
 Mobility(app)
 app.secret_key = os.getenv('SECRET_KEY')
 app.config["DEBUG"] = True
 
+credential = etree.parse("credential.xml")
+
 SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://{username}:{password}@{hostname}/{databasename}?charset=utf8".format(
-    username="Raistrike",
-    password="Nuvoletta2",
-    hostname="Raistrike.mysql.pythonanywhere-services.com",
-    databasename="Raistrike$data",
+    username=credential.xpath("//username/text()")[0],
+    password=credential.xpath("//password/text()")[0],
+    hostname=credential.xpath("//hostname/text()")[0],
+    databasename=credential.xpath("//database/text()")[0],
 )
 
 app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
@@ -334,7 +338,7 @@ def user_action_manga(manga_id):
                 return abort(500, message="an error occured:\n{}".format(traceback.format_exc(e)))
     else:
         return abort(404, message="cannot find manga with id={}".format(manga_id))
-    return 200
+    return "OK", 200, {'ContentType':'application/json'}
 
 
 @DeprecationWarning
@@ -451,44 +455,6 @@ def releases(template):
                     'future': releases_future}
 
     return render_template(template, RELEASE_DICT=release_dict, HEADER=header)
-
-
-@DeprecationWarning
-@app.route("/old_releases")
-def old_releases():
-    data = Releases.query.join(Manga).order_by(Releases.release_date).all()
-    now = datetime.now()
-    date_prev = now - timedelta(weeks=8)
-    date_next = now + timedelta(weeks=1)
-    t_now = now.isocalendar()[:2]
-    t_prev = date_prev.isocalendar()[:2]
-    t_next = date_next.isocalendar()[:2]
-
-    user_collection = []
-    user_manga = []
-    if session.get('logged_in', False):
-        user_collection = UserCollection.query.filter(UserCollection.user_id == session['user_id']).all()
-        user_collection = [(c.manga_id, c.volume) for c in user_collection]
-        user_manga = UserManga.query.filter(UserManga.user_id == session['user_id']).all()
-        user_manga = [m.manga_id for m in user_manga]
-
-    week_dict = {'prev': [], 'this': [], 'next': [], 'future': []}
-    for r in data:
-        if (r.manga_id, r.volume) in user_collection or (user_manga and r.manga_id not in user_manga):
-            continue
-        t_r = r.release_date.isocalendar()[:2]
-        if t_r < t_prev:
-            continue
-        elif t_prev <= t_r < t_now:
-            week_dict['prev'].append(r)
-        elif t_r == t_now:
-            week_dict['this'].append(r)
-        elif t_r == t_next:
-            week_dict['next'].append(r)
-        else:
-            week_dict['future'].append(r)
-    price_dict = {key: sum(x.price for x in value) for key, value in week_dict.items()}
-    return render_template('releases.html', RELEASE_DICT=week_dict, PRICE=price_dict, HEADER=header)
 
 
 @app.route("/test")

@@ -1,5 +1,6 @@
 # Personal Files
 example/
+credential.xml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
