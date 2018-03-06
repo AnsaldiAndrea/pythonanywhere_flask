@@ -31,7 +31,6 @@
                     <th></th>
                 {% endif %}
                 <th>Title</th>
-                <th>Publisher</th>
             </tr>
         </thead>
         <tbody>
@@ -39,14 +38,17 @@
             <tr id="{{ m.id }}">
                 {% if session.logged_in %}
                 <td class="fixed_glyph">
-                    <a href="javascript:void(0)" class="btn btn-link btn-sm bookmark"
+                    <a href="{{ url_for("manga_item", manga_id=m.id) }}" class="btn btn-link btn-sm bookmark"
                        data-bookmark={% if m.id in USER_LIST %}true{% else %}false{% endif %}>
                         <span class='glyphicon glyphicon-star{% if not m.id in USER_LIST %}-empty{% endif %}'></span>
                     </a>
                 </td>
                 {% endif %}
-                <td class="center_text title"><a href="javascript:void(0)"><strong>{{ m.title }}</strong></a></td>
-                <td class="center_text">{{ m.publisher.value }}</td>
+                <td class="center_text title">
+                    <a href="javascript:void(0)"><strong>{{ m.title }}</strong></a>
+                    <br>
+                    <p><strong>Publisher:</strong> {{ m.publisher.value }}</p>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
