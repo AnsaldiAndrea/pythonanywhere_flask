@@ -24,7 +24,7 @@ Mobility(app)
 app.secret_key = os.getenv('SECRET_KEY')
 app.config["DEBUG"] = True
 
-credential = etree.parse("credential.xml")
+credential = etree.parse("/home/Raistrike/mysite/credential.xml")
 
 SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://{username}:{password}@{hostname}/{databasename}?charset=utf8".format(
     username=credential.xpath("//username/text()")[0],
@@ -292,7 +292,7 @@ def manga(template):
     manga_list = db_helper.get_manga()
     if session.get('logged_in', False):
         user_manga = db_helper.get_user_manga(session.get('user_id'))
-        return render_template('manga.html', MANGA_LIST=manga_list, USER_LIST=user_manga)
+        return render_template(template, MANGA_LIST=manga_list, USER_LIST=user_manga)
     return render_template(template, MANGA_LIST=manga_list)
 
 
