@@ -3,7 +3,8 @@ $(function() {
         var tr = $(this).parent().closest("tr");
         var button = tr.find("a");
         var icon = tr.find("span");
-        var manga_id = tr.id;
+        var manga_id = tr.attr("id");
+        console.log(manga_id);
         var bookmarked = ($(this).attr("data-bookmark") === "true");
         var tp = "POST";
         if(bookmarked) tp = "DELETE";
@@ -13,12 +14,12 @@ $(function() {
             contentType: 'application/json;charset=UTF-8',
             success: function() {
                 if(bookmarked){
-                    tr.removeClass("info");
+                    tr.removeClass("active");
                     button.attr("data-bookmark", "false");
                     icon.removeClass('glyphicon-star');
                     icon.addClass("glyphicon-star-empty");
                 } else {
-                    tr.addClass("info");
+                    tr.addClass("active");
                     button.attr("data-bookmark", "true");
                     icon.removeClass('glyphicon-star-empty');
                     icon.addClass("glyphicon-star");
@@ -37,7 +38,7 @@ $(function() {
         console.log(value);
         $("table tr").each(function(index) {
             if (index !== 0) {
-                var title = $(this).find("td.title").text();
+                var title = $(this).find(".title").text();
                 if (title.toLowerCase().indexOf(value.toLowerCase()) !== 0) {
                     $(this).hide();
                 }
