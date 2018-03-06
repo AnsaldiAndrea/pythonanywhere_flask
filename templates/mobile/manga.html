@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+
+{% block head %}
+    <title>MangaManager: Manga</title>
+    <script type="text/javascript" src="/static/script/manga_new.js"></script>
+    <link rel="stylesheet" type="text/css" href="/static/css/mobile/manga.css">
+{% endblock %}
+
+{% block body %}
+    <h2>Manga</h2>
+    <p>List of all available Manga</p>
+
+    <div class="panel">
+        <div class="row container">
+            <div class="input-group">
+                <input type="search" class="form-control" placeholder="Search..." id="search"/>
+                <div class="input-group-btn">
+                    <button class="btn btn-primary" type="submit">
+                        <span class="glyphicon glyphicon-search"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class='panel panel-primary'>
+    <table class="table table-condensed">
+        <thead>
+            <tr>
+                {% if session.logged_in %}
+                    <th></th>
+                {% endif %}
+                <th>Title</th>
+                <th>Publisher</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr id="{{ m.id }}">
+                {% if session.logged_in %}
+                <td class="fixed_glyph">
+                    <a href="javascript:void(0)" class="btn btn-link btn-sm bookmark"
+                       data-bookmark={% if m.id in USER_LIST %}true{% else %}false{% endblock %}>
+                        <span class='glyphicon glyphicon-star{% if not m.id in USER_LIST %}-empty{% endif %}'></span>
+                    </a>
+                </td>
+                {% endif %}
+                <td class="center_text title"><a href="javascript:void(0)"><strong>{{ m.title }}</strong></a></td>
+                <td class="center_text">{{ m.publisher }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+
+    </div>
+
+{% endblock %}

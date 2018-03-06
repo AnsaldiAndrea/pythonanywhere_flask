@@ -287,12 +287,13 @@ def logout():
 
 
 @app.route("/manga")
-def manga():
+@mobile_template("{mobile/}manga.html")
+def manga(template):
     manga_list = db_helper.get_manga()
     if session.get('logged_in', False):
         user_manga = db_helper.get_user_manga(session.get('user_id'))
         return render_template('manga.html', MANGA_LIST=manga_list, USER_LIST=user_manga)
-    return render_template('manga.html', MANGA_LIST=manga_list)
+    return render_template(template, MANGA_LIST=manga_list)
 
 
 @app.route("/manga/<string:manga_id>")
