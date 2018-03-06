@@ -624,10 +624,12 @@ class ApiMangaUpdateFrom(Resource):
 
 
 class ApiAlias(Resource):
-    def get(self, manga_id):
+    """
+        def get(self, manga_id):
         alias = Alias.query.filter(Alias.manga_id == manga_id).all()
         alias_list = [x.title for x in alias]
         return [alias.manga.title, alias_list]
+    """
 
     def post(self):
         x = db_helper.insert_alias(db, request.get_json()['id'], request.get_json()['alias'])
@@ -654,6 +656,6 @@ api.add_resource(ApiMangaId, '/api/manga/<string:manga_id>')
 api.add_resource(ApiManga, '/api/manga')
 api.add_resource(ApiMangaUpdate, '/api/manga/update')
 api.add_resource(ApiMangaUpdateFrom, '/api/manga/update/from/<string:yearweek>')
-api.add_resource(ApiAlias, '/api/alias/<string:manga_id>')
+api.add_resource(ApiAlias, '/api/alias')
 api.add_resource(ApiParser, '/api/releases/parse')
 api.add_resource(ApiReleases, '/api/releases')
