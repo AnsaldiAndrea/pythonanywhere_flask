@@ -2,6 +2,7 @@ import re
 from static.types.enumtypes import Publisher
 from database_helper import get_titles_with_alias, get_manga_by_id
 import logging
+from datetime import datetime
 
 
 logging.basicConfig(filename='parser_test.log', level=logging.INFO)
@@ -59,7 +60,10 @@ class ReleaseObject:
         return self.value['release_date']
 
     def set_release_date(self, release_date):
-        self.value['release_date'] = release_date
+        if type(release_date) is datetime:
+            self.value['release_date'] = release_date
+        elif type(release_date) is str:
+            self.value['release_date'] = datetime.strptime(release_date, "%Y-%m-%d")
 
     def get_price(self):
         return self.value['price']
@@ -76,6 +80,9 @@ class ReleaseObject:
     def __str__(self):
         return str(self.value)
 
+    def as_dict(self):
+        return self.value
+
     def clear(self):
         self.value.clear()
 
@@ -84,7 +91,7 @@ class ReleaseObject:
         self.title = dictonary.get("title_volume", "")
         self.subtitle = dictonary.get("subtitle", "")
         self.publisher = dictonary.get("publisher", "planet")
-        self.release_date = dictonary.get("release_date", "1900-01-01")
+        self.release_date = dictonary.get("release_date", datetime(1900,1,1))
         self.price = dictonary.get("price", 0)
         self.cover = dictonary.get("cover", None)
 

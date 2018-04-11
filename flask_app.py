@@ -640,7 +640,7 @@ class ApiAlias(Resource):
         return {'message': x['message']}
 
 
-class ApiRelease(Resource):
+class ApiParseRelease(Resource):
     def post(self):
         release_obj = ReleaseObject(request.get_json())
         release_obj.parse()
@@ -668,4 +668,4 @@ api.add_resource(ApiMangaUpdateFrom, '/api/manga/update/from/<string:yearweek>')
 api.add_resource(ApiAlias, '/api/alias')
 api.add_resource(ApiParserOld, '/api/releases/parse_old')
 api.add_resource(ApiReleases, '/api/releases')
-api.add_resource(ApiRelease, '/api/releases/parse')
+api.add_resource(ApiParseRelease, '/api/releases/parse')

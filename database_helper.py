@@ -32,15 +32,6 @@ def manga_to_dict(manga):
             'cover': manga.cover}
 
 
-def release_to_dict(release):
-    return {'id': release.manga_id,
-            'subtitle': release.subtitle,
-            'volume': release.volume,
-            'release_date': release.release_date,
-            'price': release.price,
-            'cover': release.cover}
-
-
 def register_user(db, form):
     from flask_app import Users
     name = form.name.data
@@ -151,35 +142,6 @@ def get_volume(manga_id, volume):
     return Collection.query.filter(Collection.manga_id == manga_id, Collection.volume == volume).first()
 
 
-def insert(db, values):
-    try:
-        n_r = 0
-        n_c = 0
-        if 'info' in values:
-            title = values['info']['title']
-            insert_manga(db, values['info'])
-            if 'release' in values:
-                n_r = len(values['releases'])
-                for release in values['releases']:
-                    r = insert_release(db, release)
-                    if not r['status'] == 'OK':
-                        return r
-            if 'collection' in values:
-                n_c = len(values['collection'])
-                for c in values['collection']:
-                    r = insert_collection_item(db, c)
-                    if not r['status'] == 'OK':
-                        return r
-            return {'status': 'OK',
-                    'message': '{} added succeffully with {} releases and {} collection item'.format(title, n_r, n_c)}
-        else:
-            return {'status': 'error',
-                    'message': 'data must contain item info'}
-    except Exception:
-        return {'status': 'error',
-                'message': traceback.format_exc()}
-
-
 def insert_manga(db, _manga):
     try:
         _manga['volumes'] = int(_manga['volumes'])
@@ -216,7 +178,29 @@ def insert_alias(db, manga_id, alias):
     return {'status': 'OK', 'message': 'alias already present'}
 
 
-def insert_release(db, release):
+def insert_release(db, obj):
+    from flask_app import Releases
+    from release_parser import ReleaseObject
+
+    release = ReleaseObject(obj)
+    r = Releases.query.filter(Releases.manga_id == release.id,
+                              Releases.volume == release.volume,
+                              Releases.release_date == release.release_date)
+    if not r:
+        r = Releases(release.as_dict())
+        db.session.add(r)
+        db.session.commit()
+    else:
+        r.cover = release.cover
+    u = update_collection(db, release)
+    if not u['status'] == 'OK':
+        return u
+    u = update_manga_from_release(db, release)
+    return u
+
+
+@DeprecationWarning
+def old_insert_release(db, release):
     from flask_app import Releases
 
     release['volume'] = int(release['volume'])
@@ -262,7 +246,22 @@ def insert_release(db, release):
     return u
 
 
-def insert_collection_item(db, item):
+def insert_collection(db, release):
+    from flask_app import Collection
+    try:
+        c = Collection(release.as_dict())
+        db.session.add(c)
+        db.session.commit()
+        return {'status': 'OK',
+                'message': '{id}-{volume} added'.format_map(release.as_dict())}
+    except Exception:
+        return {'status': 'Error',
+                'source': '{id}-{volume} added'.format_map(release.as_dict()),
+                'message': traceback.format_exc()}
+
+
+@DeprecationWarning
+def old_insert_collection_item(db, item):
     """
         helper method for collection item insert
         does not check if item is already in database
@@ -301,7 +300,26 @@ def insert_unknown(db, values):
                 'message': traceback.format_exc()}
 
 
-def update_collection(db, values):
+def update_collection(db, release):
+    from flask_app import Collection
+    try:
+        c = Collection.query.filter(Collection.manga_id == release.id, Collection.volume == release.volume).first()
+        if c:
+            if not is_cover_null(c.cover):
+                c.cover = release.cover
+        else:
+            insert_collection(db, release)
+        db.session.commit()
+        return {'status': 'OK',
+                'message': '{id}-{volume} added'.format_map(release.as_dict())}
+    except Exception:
+        return {'status': 'Error',
+                'source': '{id}-{volume}'.format_map(release.as_dict()),
+                'message': traceback.format_exc()}
+
+
+@DeprecationWarning
+def old_update_collection(db, values):
     from flask_app import Collection
     try:
         c = Collection.query.filter(Collection.manga_id == values['id'], Collection.volume == values['volume']).first()
@@ -309,7 +327,7 @@ def update_collection(db, values):
             if not is_cover_null(c.cover):
                 c.cover = values['cover']
         else:
-            insert_collection_item(db, values)
+            old_insert_collection_item(db, values)
         db.session.commit()
         return {'status': 'OK',
                 'message': '{id}-{volume} added'.format_map(values)}
@@ -320,6 +338,32 @@ def update_collection(db, values):
 
 
 def update_manga_from_release(db, release):
+    from flask_app import Manga
+    try:
+        t = release.release_date.isocalendar()[:2]
+        now = datetime.now().isocalendar()[:2]
+        if t <= now:
+            m = Manga.query.filter(Manga.id == release.id).first()
+            if m:
+                if release.volume >= m.released:
+                    m.released = release.volume
+                    if release.cover:
+                        m.cover = release.cover
+                if release.volume == 1 and m.status == Status.TBA:
+                    m.status = Status.Ongoing
+                if release.volume == m.volumes and m.complete:
+                    m.status = Status.Complete
+                db.session.commit()
+        return {'status': 'OK',
+                'message': '{id}-{volume}-{release_date} added'.format_map(release.as_dict())}
+    except Exception:
+        return {'status': 'Error',
+                'source': '{id}-{volume}-{release_date}'.format_map(release.as_dict()),
+                'message': traceback.format_exc()}
+
+
+@DeprecationWarning
+def old_update_manga_from_release(db, release):
     from flask_app import Manga
     try:
         t = release['release_date'].isocalendar()[:2]
