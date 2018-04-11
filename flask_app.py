@@ -13,9 +13,9 @@ from sqlalchemy.ext.hybrid import hybrid_method
 
 import database_helper as db_helper
 from forms import RegisterForm, NewMangaForm, NewReleaseForm
-from release_parser import ReleaseParser
+from old_release_parser import ReleaseParser
 from static.types.enumtypes import Publisher, Status
-from new_release_parser import ReleaseObject
+from release_parser import ReleaseObject
 
 
 from lxml import etree
@@ -640,9 +640,11 @@ class ApiAlias(Resource):
         return {'message': x['message']}
 
 
-class ApiParser(Resource):
+class ApiRelease(Resource):
     def post(self):
-        return ReleaseParser.parse_single(request.get_json())
+        release_obj = ReleaseObject(request.get_json())
+        release_obj.parse()
+        return str(release_obj)
 
 
 class ApiReleases(Resource):
@@ -653,11 +655,9 @@ class ApiReleases(Resource):
         return {'message': x['message']}
 
 
-class ApiReleaseTest(Resource):
+class ApiParserOld(Resource):
     def post(self):
-        release_obj = ReleaseObject(request.get_json())
-        release_obj.parse()
-        return str(release_obj)
+        return ReleaseParser.parse_single(request.get_json())
 
 
 api.add_resource(ApiIds, '/api/ids')
@@ -666,6 +666,6 @@ api.add_resource(ApiManga, '/api/manga')
 api.add_resource(ApiMangaUpdate, '/api/manga/update')
 api.add_resource(ApiMangaUpdateFrom, '/api/manga/update/from/<string:yearweek>')
 api.add_resource(ApiAlias, '/api/alias')
-api.add_resource(ApiParser, '/api/releases/parse')
+api.add_resource(ApiParserOld, '/api/releases/parse_old')
 api.add_resource(ApiReleases, '/api/releases')
-api.add_resource(ApiReleaseTest, '/api/releases/parse_test')
+api.add_resource(ApiRelease, '/api/releases/parse')

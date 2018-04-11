@@ -1,216 +1,296 @@
 import re
-import traceback
-
-import database_helper as db_helper
 from static.types.enumtypes import Publisher
+from database_helper import get_titles_with_alias, get_manga_by_id
+import logging
 
 
-class ReleaseParser:
-    def __init__(self, db):
-        self.db = db
+logging.basicConfig(filename='parser_test.log', level=logging.INFO)
+
+class ReleaseObject:
+    def __init__(self, obj=None):
+        self.value = {"id": "",
+                      "title": None,
+                      "volume": 0,
+                      "extra": [],
+                      "subtitle": "",
+                      "publisher": "",
+                      "release_date": None,
+                      "price": 0, "cover": None}
+        if obj:
+            self.load(obj)
+
+    def get_id(self):
+        return self.value['id']
+
+    def set_id(self, id: str):
+        self.value['id'] = id
+
+    def get_title(self):
+        return self.value["title"]
+
+    def set_title(self, title):
+        self.value["title"] = title
+
+    def get_volume(self):
+        return self.value["volume"]
+
+    def set_volume(self, volume):
+        self.value["volume"] = volume
+
+    def get_extra(self):
+        return self.value["extra"]
+
+    def get_subtitle(self):
+        return self.value['subtitle']
+
+    def set_subtitle(self, subtitle):
+        self.value["subtitle"] = subtitle
+
+    def set_extra(self, extra):
+        self.value["extra"].append(extra)
+
+    def get_publisher(self):
+        return self.value['publisher']
+
+    def set_publisher(self, publisher):
+        self.value['publisher'] = publisher
+
+    def get_release_date(self):
+        return self.value['release_date']
+
+    def set_release_date(self, release_date):
+        self.value['release_date'] = release_date
+
+    def get_price(self):
+        return self.value['price']
+
+    def set_price(self, price):
+        self.value['price'] = price
+
+    def get_cover(self):
+        return self.value['cover']
+
+    def set_cover(self, cover):
+        self.value['cover'] = cover
+
+    def __str__(self):
+        return str(self.value)
+
+    def clear(self):
+        self.value.clear()
+
+    def load(self, dictonary: dict):
+        logging.info(dictonary)
+        self.title = dictonary.get("title_volume", "")
+        self.subtitle = dictonary.get("subtitle", "")
+        self.publisher = dictonary.get("publisher", "planet")
+        self.release_date = dictonary.get("release_date", "1900-01-01")
+        self.price = dictonary.get("price", 0)
+        self.cover = dictonary.get("cover", None)
+
+    def parse(self):
+        # logging.info(self)
+        parser = get_parser(self.publisher, self)
+        parser.regex()
+        # logging.info(self)
+        _id = identify(self)
+        if not _id:
+            self.clear()
+            self.id = "unknown"
+            return
+        self.id = _id
+        self.title = get_manga_by_id(_id).title
+        if "BOX" in self.extra:
+            if self.subtitle:
+                self.subtitle += " - BOX"
+            else:
+                self.subtitle = "BOX"
+        self.value.pop("extra")
+
+    id = property(get_id, set_id)
+    title = property(get_title, set_title)
+    volume = property(get_volume, set_volume)
+    extra = property(get_extra, set_extra)
+    subtitle = property(get_subtitle, set_subtitle)
+    publisher = property(get_publisher, set_publisher)
+    release_date = property(get_release_date, set_release_date)
+    price = property(get_price, set_price)
+    cover = property(get_cover, set_cover)
+
+
+class Parser:
+    def __init__(self, obj: ReleaseObject):
+        self.obj = obj
+
+    def regex(self):
+        pass
 
     @staticmethod
-    def parse_single(data):
-        titles = db_helper.get_titles_with_alias()
-        try:
-            pub = data['publisher']
-            if pub == 'planet':
-                return _regex_planet(data, titles)
-            if pub == 'star':
-                return _regex_star(data, titles)
-            if pub == 'jpop':
-                return _regex_jpop(data, titles)
-            return {}
-        except Exception:
-            return {"status": "error", "message": traceback.format_exc()}
-
-    def _parse(self, data):
-        titles = db_helper.get_titles_with_alias()
-        to_correct = []
-        for x in data:
-            try:
-                pub = x['publisher']
-                if pub == 'planet':
-                    r = _regex_planet(x, titles)
-                elif pub == 'star':
-                    r = _regex_star(x, titles)
-                elif pub == 'jpop':
-                    r = _regex_jpop(x, titles)
-                    if not r.id == "unknown":
-                        to_correct.append(r)
-                        continue
-                if r.id == "unknown":
-                    db_helper.insert_unknown(self.db, x)
-                else:
-                    db_helper.insert_release(self.db, r)
-                continue
-            except Exception:
-                return {"status": "Error", "sorce": x, "message": traceback.format_exc()}
-        self.insert_jpop(to_correct)
-        return {"status": "OK", "message": "parsing successful"}
-
-    def parse(self, data):
-        titles = db_helper.get_titles_with_alias()
-        to_correct = []
-        for x in data:
-            try:
-                pub = x['publisher']
-                if pub == 'planet':
-                    regex_planet(self.db, x, titles)
-                    continue
-                if pub == 'star':
-                    regex_star(self.db, x, titles)
-                    continue
-                if pub == 'jpop':
-                    regex_jpop(self.db, x, titles, to_correct)
-                    continue
-            except Exception:
-                return {"status": "Error", "sorce": x, "message": traceback.format_exc()}
-        self.insert_jpop(to_correct)
-        return {"status": "OK", "message": "parsing successful"}
-
-    def insert_jpop(self, to_correct):
-        for x in correct_jpop(to_correct):
-            db_helper.insert_release(self.db, x)
+    def filter_none(tuples):
+        return tuple(x for x in tuples if x is not None)
 
 
-def _regex_planet(values, titles):
-    match = re.fullmatch('((.*)\\s(\\d+))', values['title_volume'])
-    if match and match.group(1):
-        title = match.group(2)
-        volume = int(match.group(3))
-        manga_id = check_title(title, Publisher.PlanetManga, titles)
-        if manga_id:
-            return fix(manga_id, volume, values)
-        else:
-            return {"id": "unknown"}
-    else:
-        manga_id = check_title(values['title_volume'], Publisher.PlanetManga, titles)
-        if manga_id:
-            return fix(manga_id, 1, values)
-        else:
-            return {"id": "unknown"}
+class ParserJpop(Parser):
+    re_box = "(.*)\\sbox\\s[(]\\d+-\\d+[)]|(.*)\\s[(]box\\s\\d+-\\d+[)]|(.*)\\sbox"
+    re_manga = "(.*)\\s-\\sil manga(\\s.*)?|(.*)\\sil manga(\\s.*)?"
+    re_volume = "(.*)\\s(\\d+)(?:\\s[(]di\\s\\d+[)])?|" \
+                "(.*)\\s(\\d+)\\s(?:[(]([A-Za-z\\s]*)[)])?|" \
+                "(.*)\\s(\\d+)\\s-\\s([A-Za-z\\s]*)\\s(?:[(][A-Za-z\\s]*[)])|" \
+                "(.*)\\s(?:[(]([A-Za-z\\s]*)[)])?|" \
+                "(.*)"
+
+    def __init__(self, obj):
+        super().__init__(obj)
+
+    def regex(self):
+        print(self.obj.title)
+        title = self.obj.title
+        title = self.regex_box(title)
+        title = self.regex_manga(title)
+        if 'BOX' not in self.obj.extra:
+            self.regex_volume(title)
+        print(self.obj.title)
+
+    def regex_box(self, title):
+        title = title.strip()
+        r = re.fullmatch(self.re_box, title, re.IGNORECASE)
+        if r:
+            groups = self.filter_none(r.groups())
+            self.obj.title = groups[0].strip()
+            self.obj.extra = "BOX"
+            return self.obj.title
+        return title.strip()
+
+    def regex_volume(self, title):
+        title = title.strip()
+        r = re.fullmatch(self.re_volume, title, re.IGNORECASE)
+        if r:
+            groups = self.filter_none(r.groups())
+            if len(groups) == 2:
+                self.obj.title = groups[0]
+                if groups[1].isdigit():
+                    self.obj.volume = int(groups[1])
+                elif 'light novel' in groups[1].lower():
+                    self.obj.volume = 1
+                    self.obj.extra = 'LIGHT NOVEL'
+            elif len(groups) == 3:
+                self.obj.title = groups[0]
+                self.obj.volume = int(groups[1])
+                if 'light novel' in groups[2].lower():
+                    self.obj.extra = 'LIGHT NOVEL'
+                elif 'ultimo' not in groups[2].lower():
+                    self.obj.title = "{} - {}".format(groups[0], groups[2])
+            else:
+                self.obj.title = groups[0]
+                self.obj.volume = 1
+
+    def regex_manga(self, title):
+        r = re.fullmatch(self.re_manga, title, re.IGNORECASE)
+        if r:
+            groups = self.filter_none(r.groups())
+            if len(groups) > 1:
+                g = re.sub("\\s+", " ", groups[0] + groups[1])
+            else:
+                g = groups[0]
+            self.obj.title = g.strip()
+            self.obj.extra = "MANGA"
+            return self.obj.title
+        return title.strip()
 
 
-@DeprecationWarning
-def regex_planet(db, values, titles):
-    match = re.fullmatch('((.*)\\s(\\d+))', values['title_volume'])
-    if match and match.group(1):
-        title = match.group(2)
-        volume = int(match.group(3))
-        manga_id = check_title(title, Publisher.PlanetManga, titles)
-        if manga_id:
-            db_helper.insert_release(db, fix(manga_id, volume, values))
-        else:
-            db_helper.insert_unknown(db, values)
-    else:
-        manga_id = check_title(values['title_volume'], Publisher.PlanetManga, titles)
-        if manga_id:
-            db_helper.insert_release(db, fix(manga_id, 1, values))
-        else:
-            db_helper.insert_unknown(db, values)
+class ParserPlanet(Parser):
+    re_volume = "(.*)\\s([^0]\\d*)|(.*)"
+    re_box = "(.*)\\s-\\spack|cofanetto\\s(.*)"
+
+    def __init__(self, obj):
+        super().__init__(obj)
+        self.fix_title()
+
+    def fix_title(self):
+        self.obj.title = self.obj.title.replace('–', '-')
+
+    def regex(self):
+        title = self.obj.title
+        print(title)
+        self.regex_box(title)
+        if 'BOX' not in self.obj.extra:
+            self.regex_volume(title)
+        print(self.obj)
+        return self.obj
+
+    def regex_box(self, title):
+        r = re.fullmatch(self.re_box, title, re.IGNORECASE)
+        if r:
+            groups = self.filter_none(r.groups())
+            self.obj.title = groups[0]
+            self.obj.volume = 0
+            self.obj.extra = 'BOX'
+
+    def regex_volume(self, title):
+        r = re.fullmatch(self.re_volume, title, re.IGNORECASE)
+        if r:
+            groups = self.filter_none(r.groups())
+            self.obj.title = groups[0]
+            if len(groups) > 1:
+                self.obj.volume = int(groups[1])
+            else:
+                self.obj.volume = 1
 
 
-def _regex_star(values, titles):
-    match = re.fullmatch('((.*)\\sn\\.\\s(\\d+))|((.*)\\svolume\\sunico)', values['title_volume'])
-    if match and match.group(1):
-        title = match.group(2)
-        volume = int(match.group(3))
-        manga_id = check_title(title, Publisher.StarComics, titles)
-        if manga_id:
-            return fix(manga_id, volume, values)
-        else:
-            return {"id": "unknown"}
-    elif match and match.group(4):
-        title = match.group(5)
-        manga_id = check_title(title, Publisher.StarComics, titles)
-        if manga_id:
-            return fix(manga_id, 1, values)
-        else:
-            return {"id": "unknown"}
-    else:
-        return {"id": "unknown"}
+class ParserStar(Parser):
+    re_volume = "(.*)\\sn\\.\\s([^0]\\d*)"
+    re_unique = "(.*)\\svolume\\sunico"
+
+    def __init__(self, obj):
+        super().__init__(obj)
+
+    def regex(self):
+        title = self.obj.title
+        print(title)
+        if not self.regex_unique(title):
+            self.regex_volume(title)
+        print(self.obj)
+        return self.obj
+
+    def regex_unique(self, title):
+        r = re.fullmatch(self.re_unique, title, re.IGNORECASE)
+        if r:
+            groups = self.filter_none(r.groups())
+            self.obj.title = groups[0]
+            self.obj.volume = 1
+            return True
+        return False
+
+    def regex_volume(self, title):
+        r = re.fullmatch(self.re_volume, title, re.IGNORECASE)
+        if r:
+            groups = self.filter_none(r.groups())
+            self.obj.title = groups[0]
+            self.obj.volume = int(groups[1])
 
 
-@DeprecationWarning
-def regex_star(db, values, titles):
-    match = re.fullmatch('((.*)\\sn\\.\\s(\\d+))|((.*)\\svolume\\sunico)', values['title_volume'])
-    if match and match.group(1):
-        title = match.group(2)
-        volume = int(match.group(3))
-        manga_id = check_title(title, Publisher.StarComics, titles)
-        if manga_id:
-            db_helper.insert_release(db, fix(manga_id, volume, values))
-        else:
-            db_helper.insert_unknown(db, values)
-    elif match and match.group(4):
-        title = match.group(5)
-        manga_id = check_title(title, Publisher.StarComics, titles)
-        if manga_id:
-            db_helper.insert_release(db, fix(manga_id, 1, values))
-        else:
-            db_helper.insert_unknown(db, values)
-    else:
-        db_helper.insert_unknown(db, values)
+def get_parser(publisher, obj: ReleaseObject) -> Parser:
+    if publisher == 'planet':
+        return ParserPlanet(obj)
+    if publisher == 'star':
+        return ParserStar(obj)
+    if publisher == 'jpop':
+        return ParserJpop(obj)
+    return ParserPlanet(obj)
 
 
-def _regex_jpop(values, titles):
-    match = re.fullmatch('((.*)\\s(\\d+))', values['title_volume'])
-    if match and match.group(1):
-        title = match.group(2)
-        volume = int(match.group(3))
-        manga_id = check_title(title, Publisher.JPOP, titles)
-        if manga_id:
-            return fix(manga_id, volume, values)
-        else:
-            return {"id": "unknown"}
-    else:
-        manga_id = check_title(values['title_volume'], Publisher.JPOP, titles)
-        if manga_id:
-            return fix(manga_id, 1, values)
-        else:
-            return {"id": "unknown"}
+publisher_map = {"planet": Publisher.PlanetManga, "star": Publisher.StarComics, "jpop": Publisher.JPOP}
 
 
-@DeprecationWarning
-def regex_jpop(db, values, titles, to_correct):
-    match = re.fullmatch('((.*)\\s(\\d+))', values['title_volume'])
-    if match and match.group(1):
-        title = match.group(2)
-        volume = int(match.group(3))
-        manga_id = check_title(title, Publisher.JPOP, titles)
-        if manga_id:
-            to_correct.append(fix(manga_id, volume, values))
-        else:
-            db_helper.insert_unknown(db, values)
-    else:
-        manga_id = check_title(values['title_volume'], Publisher.JPOP, titles)
-        if manga_id:
-            to_correct.append(fix(manga_id, 1, values))
-        else:
-            db_helper.insert_unknown(db, values)
+def identify(obj: ReleaseObject):
+    titles = get_titles_with_alias()
+    title = obj.title
+    if "MANGA" in obj.extra:
+        title += " MANGA"
+    elif "LIGHT NOVEL" in obj.extra:
+        title += " LIGHT NOVEL"
+    return titles.get((normal(obj.title), publisher_map[obj.publisher]), None)
 
 
-def correct_jpop(values):
-    news_list = [x for x in values if not x['cover']]
-    other = [x for x in values if x not in news_list]
-    for n in news_list:
-        o = [x for x in other if x['id'] == n['id'] and x['volume'] == n['volume']]
-        if o:
-            n['cover'] = o[0]['cover']
-    return news_list
-
-
-def check_title(title, publisher, titles):
-    title_low = re.sub('[^\w]', '', title).lower()
-    if (title_low, publisher) in titles:
-        return titles[(title_low, publisher)]
-    return ''
-
-
-def fix(manga_id, volume, values):
-    values['id'] = manga_id
-    values['volume'] = volume
-    values['price'] = values['price'] if values['price'] else "0"
-    values.pop('title_volume', None)
-    return values
+def normal(title: str):
+    return re.sub("[^\\w]", "", title).lower()
