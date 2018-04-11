@@ -644,7 +644,8 @@ class ApiParseRelease(Resource):
     def post(self):
         release_obj = ReleaseObject(request.get_json())
         release_obj.parse()
-        return str(release_obj)
+        release_obj.release_date = release_obj.release_date.strftime("%Y-%m-%d")
+        return release_obj.as_dict()
 
 
 class ApiReleases(Resource):
