@@ -15,6 +15,8 @@ import database_helper as db_helper
 from forms import RegisterForm, NewMangaForm, NewReleaseForm
 from release_parser import ReleaseParser
 from static.types.enumtypes import Publisher, Status
+from regex.main import ReleaseObject
+from regex.release_parser_v2 import identify
 
 from lxml import etree
 
@@ -651,6 +653,13 @@ class ApiReleases(Resource):
         return {'message': x['message']}
 
 
+class ApiReleaseTest(Resource):
+    def post(self):
+        release_obj = ReleaseObject(request.get_json())
+        release_obj.parse()
+        return str(release_obj)
+
+
 api.add_resource(ApiIds, '/api/ids')
 api.add_resource(ApiMangaId, '/api/manga/<string:manga_id>')
 api.add_resource(ApiManga, '/api/manga')
@@ -659,3 +668,4 @@ api.add_resource(ApiMangaUpdateFrom, '/api/manga/update/from/<string:yearweek>')
 api.add_resource(ApiAlias, '/api/alias')
 api.add_resource(ApiParser, '/api/releases/parse')
 api.add_resource(ApiReleases, '/api/releases')
+api.add_resource(ApiReleaseTest, '/api/releases/parse_test')

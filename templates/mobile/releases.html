@@ -37,6 +37,8 @@
                                     <div>
                                         <span><strong><a>{{ r.manga.title }} {{ r.volume }}</a></strong></span>
                                         <br>
+                                        <span class="text-muted">{{ r.subtitle }}</span>
+                                        <br>
                                         <span><strong>Releases Date: </strong>{{ r.release_date.strftime("%d/%m/%Y") }}</span>
                                         <br>
                                         <span data-price="price_{{ key }}">{{ "{:10.2f}".format(r.price) }} €</span>
