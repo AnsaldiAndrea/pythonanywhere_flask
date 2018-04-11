@@ -92,10 +92,13 @@ class Releases(db.Model):
         self.manga_id = data['id']
         self.subtitle = data['subtitle']
         self.volume = data['volume']
-        self.release_date = data['release_date']
+        if type(data['release_date']) == str:
+            self.release_date = datetime.strptime(data['release_date'], "%Y-%m-%d")
+        else:
+            self.release_date = data['release_date']
         self.price = data['price']
         self.cover = data['cover']
-        self.yearweek = db_helper.to_yearweek(data['release_date'])
+        self.yearweek = db_helper.to_yearweek(self.release_date)
 
     manga_id = db.Column(db.String(16), db.ForeignKey('manga.id'), primary_key=True)
     manga = db.relationship("Manga", backref=db.backref("releases", uselist=False))

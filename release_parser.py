@@ -60,10 +60,10 @@ class ReleaseObject:
         return self.value['release_date']
 
     def set_release_date(self, release_date):
-        if type(release_date) is datetime:
-            self.value['release_date'] = release_date
-        elif type(release_date) is str:
-            self.value['release_date'] = datetime.strptime(release_date, "%Y-%m-%d")
+        self.value['release_date'] = release_date
+
+    def release_date_as_datetime(self):
+        return datetime.strptime(self.value["release_date"],"%Y-%m-%d")
 
     def get_price(self):
         return self.value['price']
@@ -91,7 +91,7 @@ class ReleaseObject:
         self.title = dictonary.get("title_volume", "")
         self.subtitle = dictonary.get("subtitle", "")
         self.publisher = dictonary.get("publisher", "planet")
-        self.release_date = dictonary.get("release_date", datetime(1900,1,1))
+        self.release_date = dictonary.get("release_date", "1900-01-01")
         self.price = dictonary.get("price", 0)
         self.cover = dictonary.get("cover", None)
 

@@ -185,7 +185,7 @@ def insert_release(db, obj):
     release = ReleaseObject(obj)
     r = Releases.query.filter(Releases.manga_id == release.id,
                               Releases.volume == release.volume,
-                              Releases.release_date == release.release_date)
+                              Releases.release_date == release.release_date_as_datetime())
     if not r:
         r = Releases(release.as_dict())
         db.session.add(r)
@@ -340,7 +340,7 @@ def old_update_collection(db, values):
 def update_manga_from_release(db, release):
     from flask_app import Manga
     try:
-        t = release.release_date.isocalendar()[:2]
+        t = release.release_date_as_datetime().isocalendar()[:2]
         now = datetime.now().isocalendar()[:2]
         if t <= now:
             m = Manga.query.filter(Manga.id == release.id).first()
