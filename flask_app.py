@@ -16,7 +16,6 @@ from forms import RegisterForm, NewMangaForm, NewReleaseForm
 from release_parser import ReleaseParser
 from static.types.enumtypes import Publisher, Status
 from regex.main import ReleaseObject
-from regex.release_parser_v2 import identify
 
 from lxml import etree
 

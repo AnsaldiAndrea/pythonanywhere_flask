@@ -1,7 +1,7 @@
-from regex.main import Parser, ReleaseObject
-from regex.planet import ParserPlanet
-from regex.star import ParserStar
-from regex.jpop import ParserJpop
+from regex import Parser, ReleaseObject
+from regex import ParserPlanet
+from regex import ParserStar
+from regex import ParserJpop
 
 
 def getParser(publisher, obj:ReleaseObject) -> Parser:

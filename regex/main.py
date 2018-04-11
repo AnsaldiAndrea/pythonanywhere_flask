@@ -1,5 +1,5 @@
-from regex.factory import getParser
-from regex.release_parser_v2 import identify
+from regex import getParser
+from regex import identify
 
 class ReleaseObject:
     def __init__(self, obj=None):

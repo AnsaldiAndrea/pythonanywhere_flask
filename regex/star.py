@@ -1,4 +1,4 @@
-from regex.main import ReleaseObject, Parser
+from regex import Parser
 import re
 
 

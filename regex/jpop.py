@@ -1,6 +1,5 @@
 import re
-from regex.main import ReleaseObject
-from regex.main import Parser
+from regex import Parser
 
 
 class ParserJpop(Parser):
