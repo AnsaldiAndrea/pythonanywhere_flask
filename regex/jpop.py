@@ -1,8 +1,8 @@
 import re
-from regex import Parser
+from regex import main
 
 
-class ParserJpop(Parser):
+class ParserJpop(main.Parser):
     re_box = "(.*)\\sbox\\s[(]\\d+-\\d+[)]|(.*)\\s[(]box\\s\\d+-\\d+[)]|(.*)\\sbox"
     re_manga = "(.*)\\s-\\sil manga(\\s.*)?|(.*)\\sil manga(\\s.*)?"
     re_volume = "(.*)\\s(\\d+)(?:\\s[(]di\\s\\d+[)])?|" \

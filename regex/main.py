@@ -1,5 +1,5 @@
-from regex import getParser
-from regex import identify
+from regex import factory
+from regex import release_parser_v2 as release_parser
 
 class ReleaseObject:
     def __init__(self, obj=None):
@@ -83,9 +83,9 @@ class ReleaseObject:
         self.cover = dictonary.get("cover", None)
 
     def parse(self):
-        parser = getParser(self.publisher, self)
+        parser = factory.getParser(self.publisher, self)
         parser.regex()
-        _id = identify(self)
+        _id = release_parser.identify(self)
         if id:
             self.clear()
             self.id = "unknown"

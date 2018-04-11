@@ -1,14 +1,14 @@
-from regex import Parser, ReleaseObject
-from regex import ParserPlanet
-from regex import ParserStar
-from regex import ParserJpop
+from regex import main
+from regex import star
+from regex import planet
+from regex import jpop
 
 
-def getParser(publisher, obj:ReleaseObject) -> Parser:
+def getParser(publisher, obj:main.ReleaseObject) -> main.Parser:
     if publisher == 'planet':
-        return ParserPlanet(obj)
+        return planet.ParserPlanet(obj)
     if publisher == 'star':
-        return ParserStar(obj)
+        return star.ParserStar(obj)
     if publisher == 'jpop':
-        return ParserJpop(obj)
-    return ParserPlanet(obj)
+        return jpop.ParserJpop(obj)
+    return planet.ParserPlanet(obj)
