@@ -15,7 +15,8 @@ import database_helper as db_helper
 from forms import RegisterForm, NewMangaForm, NewReleaseForm
 from release_parser import ReleaseParser
 from static.types.enumtypes import Publisher, Status
-from regex.release_object import ReleaseObject
+from new_release_parser import ReleaseObject
+
 
 from lxml import etree
 
