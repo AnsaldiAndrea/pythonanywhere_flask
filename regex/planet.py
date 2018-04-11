@@ -1,8 +1,8 @@
-from regex import main
+from regex import parser
 import re
 
 
-class ParserPlanet(main.Parser):
+class ParserPlanet(parser.Parser):
     re_volume = "(.*)\\s([^0]\\d*)|(.*)"
     re_box = "(.*)\\s-\\spack|cofanetto\\s(.*)"
 

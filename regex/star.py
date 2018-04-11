@@ -1,8 +1,8 @@
-from regex import main
+from regex import parser
 import re
 
 
-class ParserStar(main.Parser):
+class ParserStar(parser.Parser):
     re_volume = "(.*)\\sn\\.\\s([^0]\\d*)"
     re_unique = "(.*)\\svolume\\sunico"
 

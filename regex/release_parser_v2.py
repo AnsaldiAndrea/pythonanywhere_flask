@@ -1,12 +1,12 @@
 from database_helper import get_titles_with_alias
 from static.types.enumtypes import Publisher
-from regex import ReleaseObject
+from regex import release_object
 import re
 
 publisher_map = {"planet": Publisher.PlanetManga, "star": Publisher.StarComics, "jpop": Publisher.JPOP}
 
 
-def identify(obj: ReleaseObject):
+def identify(obj: release_object.ReleaseObject):
     obj.parse()
     titles = get_titles_with_alias()
     title = obj.title

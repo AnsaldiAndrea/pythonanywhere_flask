@@ -1,10 +1,11 @@
-from regex import main
+from regex import release_object
+from regex import parser
 from regex import star
 from regex import planet
 from regex import jpop
 
 
-def getParser(publisher, obj:main.ReleaseObject) -> main.Parser:
+def get_parser(publisher, obj:release_object.ReleaseObject) -> parser.Parser:
     if publisher == 'planet':
         return planet.ParserPlanet(obj)
     if publisher == 'star':
