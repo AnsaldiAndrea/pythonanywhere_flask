@@ -88,9 +88,9 @@ class ReleaseObject:
 
     def load(self, dictonary: dict):
         logging.info(dictonary)
-        self.title = dictonary.get("title_volume", "")
-        if not self.title:
-            self.title = dictonary.get("title", "")
+        self.id = dictonary.get("id", "")
+        self.title = dictonary.get("title", "")
+        self.title = dictonary.get("title_volume", self.title)
         self.subtitle = dictonary.get("subtitle", "")
         self.publisher = dictonary.get("publisher", "planet")
         self.release_date = dictonary.get("release_date", "1900-01-01")
