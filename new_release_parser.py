@@ -1,7 +1,10 @@
 import re
 from static.types.enumtypes import Publisher
-from database_helper import get_titles_with_alias
+from database_helper import get_titles_with_alias, get_manga_by_id
+import logging
 
+
+logging.basicConfig(filename='parser_test.log', level=logging.INFO)
 
 class ReleaseObject:
     def __init__(self, obj=None):
@@ -41,7 +44,7 @@ class ReleaseObject:
         return self.value['subtitle']
 
     def set_subtitle(self, subtitle):
-        self.value["subtitle"].append(subtitle)
+        self.value["subtitle"] = subtitle
 
     def set_extra(self, extra):
         self.value["extra"].append(extra)
@@ -77,6 +80,7 @@ class ReleaseObject:
         self.value.clear()
 
     def load(self, dictonary: dict):
+        logging.info(dictonary)
         self.title = dictonary.get("title_volume", "")
         self.subtitle = dictonary.get("subtitle", "")
         self.publisher = dictonary.get("publisher", "planet")
@@ -85,14 +89,17 @@ class ReleaseObject:
         self.cover = dictonary.get("cover", None)
 
     def parse(self):
+        # logging.info(self)
         parser = get_parser(self.publisher, self)
         parser.regex()
+        # logging.info(self)
         _id = identify(self)
-        if id:
+        if not _id:
             self.clear()
             self.id = "unknown"
             return
         self.id = _id
+        self.title = get_manga_by_id(_id).title
         if "BOX" in self.extra:
             if self.subtitle:
                 self.subtitle += " - BOX"
@@ -276,7 +283,6 @@ publisher_map = {"planet": Publisher.PlanetManga, "star": Publisher.StarComics, 
 
 
 def identify(obj: ReleaseObject):
-    obj.parse()
     titles = get_titles_with_alias()
     title = obj.title
     if "MANGA" in obj.extra:
