@@ -305,7 +305,7 @@ def update_collection(db, release):
     try:
         c = Collection.query.filter(Collection.manga_id == release.id, Collection.volume == release.volume).first()
         if c:
-            if not is_cover_null(c.cover):
+            if is_cover_null(c.cover):
                 c.cover = release.cover
         else:
             insert_collection(db, release)
