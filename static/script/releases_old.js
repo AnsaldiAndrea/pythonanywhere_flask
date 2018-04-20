@@ -52,6 +52,6 @@ $(function() {
 });
 
 
-$('.modal').on('shown.bs.modal', function (e) {
-
+$(document).ready(function(){
+    $('[data-toggle="popover"]').popover();
 });
