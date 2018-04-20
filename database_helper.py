@@ -185,7 +185,7 @@ def insert_release(db, obj):
     release = ReleaseObject(obj)
     r = Releases.query.filter(Releases.manga_id == release.id,
                               Releases.volume == release.volume,
-                              Releases.release_date == release.release_date_as_datetime())
+                              Releases.release_date == release.release_date_as_datetime()).first()
     if not r:
         r = Releases(release.as_dict())
         db.session.add(r)
