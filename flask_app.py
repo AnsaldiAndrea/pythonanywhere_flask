@@ -1,3 +1,19 @@
+# TODO:
+#   Important:
+#   - Add subtitle as primary key in Releases and Collection
+#   - Remove Depraceted code
+#   - Replace all instances of manga or release dictionary with new Object classes
+#   - Change password encoding to include salt and stronger encoding (check bookmark) + add salt column in user table
+#   - Change password checking in login to reflect changes on password encoding
+#   - Remove Admin pages (useless for now) - keep admin status
+#   - Remove Unknown references and instances - moved to local
+#   Next update:
+#   - Add statistics to index page
+#   - Add personal statistics to dashboard
+#   - Add footer to all pages
+#   - Add backwards navigation to all pages (check bookmark)
+#   - Add genre and artist/author search
+
 import os
 from datetime import datetime, timedelta
 from functools import wraps
@@ -480,7 +496,7 @@ def unknown():
     u = Unknown.query.all()
     return render_template('admin/unknown.html', unknown=u)
 
-
+"""
 @app.route("/admin/new_manga", methods=['GET', 'POST'])
 @is_admin
 def admin_new_manga():
@@ -540,6 +556,7 @@ def admin_new_manga():
     else:
         form = NewMangaForm(request.form)
         return render_template('admin/new_manga.html', form=form)
+"""
 
 
 @app.route("/admin/new_release", methods=['GET', 'POST'])
@@ -629,13 +646,6 @@ class ApiMangaUpdateFrom(Resource):
 
 
 class ApiAlias(Resource):
-    """
-        def get(self, manga_id):
-        alias = Alias.query.filter(Alias.manga_id == manga_id).all()
-        alias_list = [x.title for x in alias]
-        return [alias.manga.title, alias_list]
-    """
-
     def post(self):
         x = db_helper.insert_alias(db, request.get_json()['id'], request.get_json()['alias'])
         if x['status'] == 'error':

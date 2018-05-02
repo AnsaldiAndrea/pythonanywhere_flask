@@ -1,3 +1,6 @@
+//TODO: Check if possible to substitute this file with mobile version
+//TODO: If not, modify html to make it possible
+
 $(function() {
     $("a#buy").click(function() {
         var row = $(this).parent().parent();
@@ -49,9 +52,4 @@ function calculate_all() {
 }
 $(function() {
     calculate_all()
-});
-
-
-$(document).ready(function(){
-    $('[data-toggle="popover"]').popover();
 });

@@ -55,7 +55,7 @@ def log_in(request, session):
 
     q = Users.query.filter(Users.username == username).first()
     if not q:
-        return {'status': 'Error', 'message': 'User not found', 'level': 'danger'}
+        return {'status': 'error', 'message': 'User not found', 'level': 'danger'}
     else:
         if sha256_crypt.verify(password_p, q.password):
             session['logged_in'] = True
@@ -65,7 +65,7 @@ def log_in(request, session):
                 session['admin'] = 1
             return {'status': 'OK', 'message': 'Logged in', 'level': 'success'}
         else:
-            return {'status': 'Error', 'message': 'Invalid Passord', 'level': 'danger'}
+            return {'status': 'error', 'message': 'Invalid Passord', 'level': 'danger'}
 
 
 def get_ids():
@@ -255,7 +255,7 @@ def insert_collection(db, release):
         return {'status': 'OK',
                 'message': '{id}-{volume} added'.format_map(release.as_dict())}
     except Exception:
-        return {'status': 'Error',
+        return {'status': 'error',
                 'source': '{id}-{volume} added'.format_map(release.as_dict()),
                 'message': traceback.format_exc()}
 
@@ -275,7 +275,7 @@ def old_insert_collection_item(db, item):
         return {'status': 'OK',
                 'message': '{id}-{volume} added'.format_map(item)}
     except Exception:
-        return {'status': 'Error',
+        return {'status': 'error',
                 'source': '{id}-{volume} added'.format_map(item),
                 'message': traceback.format_exc()}
 
@@ -295,7 +295,7 @@ def insert_unknown(db, values):
         return {'status': 'OK',
                 'message': '{title} added'.format_map(values)}
     except Exception:
-        return {'status': 'Error',
+        return {'status': 'error',
                 'source': '{title} added'.format_map(values),
                 'message': traceback.format_exc()}
 
@@ -313,7 +313,7 @@ def update_collection(db, release):
         return {'status': 'OK',
                 'message': '{id}-{volume} added'.format_map(release.as_dict())}
     except Exception:
-        return {'status': 'Error',
+        return {'status': 'error',
                 'source': '{id}-{volume}'.format_map(release.as_dict()),
                 'message': traceback.format_exc()}
 
@@ -332,7 +332,7 @@ def old_update_collection(db, values):
         return {'status': 'OK',
                 'message': '{id}-{volume} added'.format_map(values)}
     except Exception:
-        return {'status': 'Error',
+        return {'status': 'error',
                 'source': '{id}-{volume}'.format_map(values),
                 'message': traceback.format_exc()}
 
@@ -357,7 +357,7 @@ def update_manga_from_release(db, release):
         return {'status': 'OK',
                 'message': '{id}-{volume}-{release_date} added'.format_map(release.as_dict())}
     except Exception:
-        return {'status': 'Error',
+        return {'status': 'error',
                 'source': '{id}-{volume}-{release_date}'.format_map(release.as_dict()),
                 'message': traceback.format_exc()}
 
@@ -383,7 +383,7 @@ def old_update_manga_from_release(db, release):
         return {'status': 'OK',
                 'message': '{id}-{volume}-{release_date} added'.format_map(release)}
     except Exception:
-        return {'status': 'Error',
+        return {'status': 'error',
                 'source': '{id}-{volume}-{release_date}'.format_map(release),
                 'message': traceback.format_exc()}
 
@@ -406,12 +406,13 @@ def update_manga_from_db(db, release):
         return {'status': 'OK',
                 'message': 'manga {} updated'.format_map(m.title)}
     except Exception:
-        return {'status': 'Error',
+        return {'status': 'error',
                 'source': '{}-{}-{}'.format(release.manga.title, release.volume, release.release_date),
                 'message': traceback.format_exc()}
 
 
-def update_manga(db, values):
+@DeprecationWarning
+def update_manga_dep(db, values):
     from flask_app import Manga
     m = Manga.query.filter(Manga.id == values['id']).first()
     try:
@@ -430,7 +431,34 @@ def update_manga(db, values):
         return {'status': 'OK',
                 'message': '{} updated'.format(m.title)}
     except Exception:
-        return {'status': 'Error',
+        return {'status': 'error',
+                'source': m.title,
+                'message': traceback.format_exc()}
+
+
+def update_manga(db, value):
+    from flask_app import Manga
+    from static.types.manga_object import MangaObject
+    obj = MangaObject(value)
+    m = Manga.query.filter(Manga.id == obj.manga_id).first()
+    try:
+        if m:
+            if obj.original:
+                m.original = obj.original
+            if obj.genre:
+                m.genre = obj.genre
+            if obj.author:
+                m.authors = obj.author
+            if obj.artist:
+                m.artists = obj.artist
+            if obj.volumes > m.volumes:
+                m.volumes = obj.volumes
+            m.complete = obj.complete
+            db.session.commit()
+        return {'status': 'OK',
+                'message': '{} updated'.format(m.title)}
+    except Exception:
+        return {'status': 'error',
                 'source': m.title,
                 'message': traceback.format_exc()}
 
