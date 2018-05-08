@@ -1,6 +1,7 @@
 import re
 import traceback
 from datetime import datetime
+import time
 
 from passlib.handlers.sha2_crypt import sha256_crypt
 from sqlalchemy.exc import IntegrityError
@@ -134,12 +135,21 @@ def get_releases_by_manga_id(manga_id):
 
 def get_user_releases(user_id, _from=None, _to=None, _at=None):
     from flask_app import Releases, UserCollection
+
+    print(time.process_time())
     user_m = get_user_manga(user_id)
+    print(time.process_time())
     release_list = Releases.query.filter(Releases.bounds(_from=_from, _to=_to, _at=_at)).order_by(Releases.release_date).all()
+    print(time.process_time())
     release_list = [r for r in release_list if r.manga_id in user_m]
+    print(time.process_time())
     user_col = UserCollection.query.filter(UserCollection.user_id == user_id).all()
+    print(time.process_time())
     user_col = [(c.collection.manga_id, c.collection.volume, c.collection.subtitle) for c in user_col]
-    return [r for r in release_list if (r.manga_id, r.volume, r.subtitle) not in user_col]
+    print(time.process_time())
+    result = [r for r in release_list if (r.manga_id, r.volume, r.subtitle) not in user_col]
+    print(time.process_time())
+    return result
 
 
 def filter_releases_by_user(release_list, user_manga, user_collection):

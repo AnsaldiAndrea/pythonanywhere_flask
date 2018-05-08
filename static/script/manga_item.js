@@ -12,10 +12,10 @@ $(function () {
                 console.log(response);
                 if(!is_in_library){
                     button.attr("data-buy","true");
-                    parent.addClass("info")
+                    parent.addClass("active")
                 } else {
                     button.attr("data-buy","false");
-                    parent.removeClass("info")
+                    parent.removeClass("active")
                 }
             },
             error: function(error){
