@@ -49,7 +49,7 @@
                                         {% endif %}
                                         <span><strong>Releases Date: </strong>{{ r.release_date|format_date }}</span>
                                         <br>
-                                        <span data-price="price_{{ key }}">{{ r.price|format_price }} €</span>
+                                        <span class="price_{{ key }}">{{ r.price|format_price }} €</span>
                                     </div>
                                 </td>
                                 {% if session.logged_in %}

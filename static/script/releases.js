@@ -16,7 +16,7 @@ $(function () {
                     table.remove();
                     panel.text("Empty");
                }
-               calculate_price($("[data-price='price_"+week+"']"),$("#sum_"+week+""));
+               calculate_price($(".price_"+week+""),$("#sum_"+week+""));
            },
            error: function (response) {
                 alert(response);
@@ -37,10 +37,10 @@ function calculate_price(source,destination) {
 }
 
 function calculate_all() {
-    calculate_price($("[data-price='price_prev']"),$("#sum_prev"));
-    calculate_price($("[data-price='price_this']"),$("#sum_this"));
-    calculate_price($("[data-price='price_next']"),$("#sum_next"));
-    calculate_price($("[data-price='price_future']"),$("#sum_future"));
+    calculate_price($(".price_prev"),$("#sum_prev"));
+    calculate_price($(".price_this"),$("#sum_this"));
+    calculate_price($(".price_next"),$("#sum_next"));
+    calculate_price($(".price_future"),$("#sum_future"));
 }
 $(function() {
     calculate_all()
