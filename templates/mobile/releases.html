@@ -3,10 +3,16 @@
 {% block head %}
     <title>Releases</title>
     <script type="text/javascript" src="/static/script/releases.js"></script>
+    <link rel="stylesheet" type="text/css" href="/static/css/root.css">
     <link rel="stylesheet" type="text/css" href="/static/css/mobile/releases.css">
 {% endblock %}
 
 {% block body %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for("index") }}">Home</a></li>
+        <li class="active">Releases</li>
+    </ol>
+
     <h2>Releases</h2>
     <p>List of all available Releases</p>
 
@@ -36,21 +42,20 @@
                                 <td>
                                     <div>
                                         <span><strong><a>{{ r.manga.title }} {{ r.volume }}</a></strong></span>
-                                        <br>
                                         {% if r.subtitle %}
+                                        <br>
                                         <span class="text-muted">{{ r.subtitle }}</span>
                                         <br>
                                         {% endif %}
-                                        <span><strong>Releases Date: </strong>{{ r.release_date.strftime("%d/%m/%Y") }}</span>
+                                        <span><strong>Releases Date: </strong>{{ r.release_date|format_date }}</span>
                                         <br>
-                                        <span data-price="price_{{ key }}">{{ "{:10.2f}".format(r.price) }} €</span>
+                                        <span data-price="price_{{ key }}">{{ r.price|format_price }} €</span>
                                     </div>
                                 </td>
                                 {% if session.logged_in %}
                                 <td>
-                                    <a class="btn btn-link {% if key in ['next','future'] %} disabled {% endif %}"
-                                       id='buy'
-                                       data-id="{{ r.manga_id }}" data-volume="{{ r.volume }}" data-week="{{ key }}">
+                                    <a class="buy btn btn-link {% if key in ['next','future'] %} disabled {% endif %}"
+                                       id='{{ r.release_id }}' data-week="{{ key }}">
                                         <span class='glyphicon glyphicon-shopping-cart'></span>
                                     </a>
                                 </td>

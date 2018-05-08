@@ -1,0 +1,36 @@
+<table class="table table-condesed">
+    <thead>
+    <tr>
+        <th>Title</th>
+        {% if session.logged_in %}
+        <th></th>
+        {% endif %}
+    </tr>
+    </thead>
+    <tbody>
+        {% for ITEM in COLLECTION %}
+        <tr {% if session.logged_in and ITEM.collection_id in USER_COLLECTION %}class="active"{% endif %}>
+            <td>
+                <a data-toggle="popover" data-html="true" data-trigger="hover"
+                   data-content="<img class='pop_img' src='{{ ITEM.cover }}'>">
+                    <strong>{{ ITEM.manga.title }} {{ ITEM.volume }}</strong>
+                </a>
+                {% if ITEM.subtitle %}
+                <br>
+                <span class="text-muted">{{ ITEM.sutitle }}</span>
+                {% endif %}
+            </td>
+            {% if session.logged_in %}
+            <td>
+               <a id="{{ ITEM.collection_id }}" class="buy btn btn-link" data-buy='{% if ITEM.collection_id in USER_COLLECTION %}true{% else %}false{% endif %}'>
+                    <span class='glyphicon glyphicon-shopping-cart'></span>
+               </a>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+        <td>Empty</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

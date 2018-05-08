@@ -1,0 +1,22 @@
+.key {
+    padding: 2px;
+    margin-top: 5px;
+}
+
+.content {
+    padding: 2px;
+}
+
+.cover {
+    padding: 15px;
+}
+
+.info {
+    padding-top: 10px;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.img-thumbnail {
+    padding: 10px;
+}

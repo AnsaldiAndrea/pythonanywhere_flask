@@ -1,0 +1,8 @@
+.pop_img {
+    width: auto;
+    height: 200px;
+}
+
+.table > tbody > tr > td {
+    vertical-align: middle
+}

@@ -1,12 +1,11 @@
 $(function () {
-    $("a#buy").click(function() {
-       var id = $(this).attr("data-id");
-       var volume = $(this).attr("data-volume");
+    $("a.buy").click(function() {
+       var id = $(this).attr("id");
        var week = $(this).attr("data-week");
        var row = $(this).closest("tr");
        $.ajax({
            type: "POST",
-           url: $SCRIPT_ROOT + "user/collection/" + id + "/" + volume,
+           url: $SCRIPT_ROOT + "user/release/" + id,
            contentType: "application/json;charset=UTF-8",
            success: function () {
                var body = row.parent();

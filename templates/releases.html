@@ -1,72 +1,74 @@
 {% extends "layout.html" %}
 
 {% block head %}
-    <title>Releases</title>
+    <title>MangaManager:Releases</title>
+    <link rel="stylesheet" type="text/css" href="/static/css/root.css">
     <link rel="stylesheet" type="text/css" href="/static/css/releases.css">
-    <script type="text/javascript" src="/static/script/releases_old.js"></script>
-    <script type="text/javascript" src="/static/script/popover.js"></script>
+    <script src="/static/script/releases.js"></script>
 {% endblock %}
 
 
 {% block body %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for("index") }}">Home</a></li>
+        <li class="active">Releases</li>
+    </ol>
     <h2>Releases</h2>
     <p>List of all available Releases</p>
-    <hr>
 
     {% for key,value in RELEASE_DICT.items() %}
         <div class="panel-group">
             <div class="panel panel-primary">
                 <div class="panel-heading">{{HEADER[key]}}</div>
                 <div class="panel-body">
-                    {% if value %}
-                        <table class="table table_{{key}} table-condensed">
-                            <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th></th>
-                                <th>Price</th>
-                                <th></th>
+                {% if value %}
+                    <table class="table table_{{key}} table-condensed">
+                        <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th></th>
+                            <th>Price</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for r in value %}
+                            <tr class="info">
+                                <td class='fixed_c'>
+                                    <a data-toggle="popover" data-html="true"
+                                       data-content="<img class='pop_img' src='{{ r.cover }}'>">
+                                            <strong>{{r.manga.title}} {{r.volume}}</strong>
+                                    </a>
+                                    {% if r.subtile %}
+                                    <br>
+                                    <span class="text-muted">{{ r.subtitle }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{r.release_date|format_date}}</td>
+                                <td class='price_{{key}}'>{{ r.price|format_price }} €</td>
+                                <td>
+                                {% if session.logged_in %}
+                                    <a id="{{ r.release_id }}" data-week="{{ key }}"
+                                       class="buy btn btn-link {% if key in ['next','future'] %} disabled {% endif %}">
+                                        <span class='glyphicon glyphicon-shopping-cart'></span>
+                                    </a>
+                                {% endif %}
+                                </td>
                             </tr>
-                            </thead>
-                            <tbody>
-                            {% for r in value %}
-                                <tr class="info">
-                                    <td class='fixed_c'>
-                                        <a data-toggle="popover"
-                                           title="{{ r.manga.title }} {{ r.volume }}" data-html="true"
-                                           data-content="<img class='pop_img' src='{{ r.cover }}'>">
-                                                <strong>{{r.manga.title}} {{r.volume}}</strong>
-                                        </a>
-                                        <br>
-                                        {% if r.subtile %}
-                                        <span class="text-muted">{{ r.subtitle }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{r.release_date.strftime("%d/%m/%Y")}}</td>
-                                    <td class='price_{{key}}'>{{ "{:10.2f}".format(r.price) }} €</td>
-                                    <td>
-                                    {% if session.logged_in %}
-                                        <a id="buy" data-id="{{ r.manga_id }}" data-volume="{{ r.volume }}" data-week="{{ key }}"
-                                           class="btn btn-link {% if key in ['next','future'] %} disabled {% endif %}">
-                                            <span class='glyphicon glyphicon-shopping-cart'></span>
-                                        </a>
-                                    {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                                <tr>
+                        {% endfor %}
+                            <tr>
+                                <td></td>
+                                <td><strong>Total =</strong></td>
+                                <td id='sum_{{ key }}'>0.00 €</td>
+                                {% if session.logged_in %}
                                     <td></td>
-                                    <td><strong>Total =</strong></td>
-                                    <td id='sum_{{ key }}'>0.00 €</td>
-                                    {% if session.logged_in %}
-                                        <td></td>
-                                    {% endif %}
-                                </tr>
-                            </tbody>
-                        </table>
-                    {% else %}
-                        <div class="panel-body">Empty</div>
-                    {% endif %}
+                                {% endif %}
+                            </tr>
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="panel-body">Empty</div>
+                {% endif %}
                 </div>
             </div>
         </div>

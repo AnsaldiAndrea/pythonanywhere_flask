@@ -1,201 +1,58 @@
-<!--
-TODO:
-    - Rework layout with tabs for collection and release list
-    - Move Javascript and css to separate file
-    - Replace modal with popover
-    - Fix outdated code
--->
-
 {% extends "layout.html" %}
+
 {% block head %}
-
-<script type="text/javascript">
-    $(function() {
-        $("a#buy").click(function() {
-            var is_in_library = ($(this).attr("data-buy")==="true");
-            var button = $(this);
-            var parent = $(this).parent().parent();
-            var data = {"manga_id":{{MANGA.id}}, "volume":$(this).attr("name")};
-            $.ajax({
-                type : is_in_library?"DELETE":"POST",
-                url : $SCRIPT_ROOT + "/user/collection/" + data['manga_id'] + "/" + data['volume'],
-                contentType: 'application/json;charset=UTF-8',
-                success: function(response){
-                    console.log(response);
-                    if(!is_in_library){
-                        button.attr("data-buy","true");
-                        parent.addClass("info")
-                    } else {
-                        button.attr("data-buy","false");
-                        parent.removeClass("info")
-                    }
-                },
-                error: function(error){
-                	console.log(error);
-                }
-            });
-        });
-    });
-</script>
-
-<style>
-    .key {
-      background-color: #cce6ff;
-      padding: 2px;
-      margin-top: 5px;
-    }
-
-    .content {
-      padding: 2px;
-    }
-
-    .fixed_c {width:80%}
-
-    @media (min-width: 1080px){
-        .modal-dialog{
-            position: relative;
-            display: table; /* This is important */
-            overflow-y: auto;
-            overflow-x: auto;
-            width: auto;
-            max-width: 350px;
-        }
-    }
-
-    @media (max-width: 1080px){
-        .modal-sm{
-            max-width: 350px;
-        }
-    }
-
-    .mmodal-header{
-        padding-left: 10px;
-        padding-right: 10px;
-        border-bottom: 1px solid #e5e5e5;
-        text-align: center;
-    }
-
-    .table > tbody > tr > td {
-        vertical-align: middle;
-    }
-
-</style>
-
+    <title>MangaManager:{{ MANGA.title }}</title>
+    <link rel="stylesheet" type="text/css" href="/static/css/root.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/manga_item.css">
 {% endblock %}
 
+
 {% block body %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for("index") }}">Home</a></li>
+        <li><a href="{{ url_for("manga") }}">Manga</a></li>
+        <li class="active">{{ MANGA.title }}</li>
+    </ol>
 
-<h2>{{MANGA.title}}</h2>
-<div class="row">
-    <div class="col-sm-3">
-        <img class='img-thumbnail img-responsive center-block' src="{{MANGA.cover}}" alt="{{MANGA.cover}}">
-    </div>
-    <div class="col-sm-9">
-        <div class="key"><strong>Status in Country of Origin</strong></div>
-        <div class="content">{{MANGA.volumes}} Volumes  ({% if MANGA.complete %}Complete{% else %}Ongoing{% endif %})</div>
-        <div class="key"><strong>Released Volumes</strong></div>
-        <div class="content">{{MANGA.released}} Volumes  ({{MANGA.status.value}})</div>
-        <div class="key"><strong>Publisher</strong></div>
-        <div class="content">{{MANGA.publisher.value}}</div>
-        <div class="key"><strong>Author(s)</strong></div>
-        <div class="content">{{MANGA.authors}}</div>
-        <div class="key"><strong>Artist(s)</strong></div>
-        <div class="content">{{MANGA.artists}}</div>
-        <div class="key"><strong>Genre</strong></div>
-        <div class="content">{{MANGA.genre}}</div>
-    </div>
+    <h3>{{ MANGA.title }}</h3>
 
-</div>
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="active"><a href="#info" role="tab" data-toggle="tab">Information</a></li>
+        <li><a href="#collection" role="tab" data-toggle="tab">Collection</a></li>
+        <li><a href="#releases" role="tab" data-toggle="tab">Releases</a></li>
+    </ul>
+    <!-- TAB CONTENT -->
+    <div class="tab-content">
+        <div class="active tab-pane fade in" id="info">
+            <div class="row">
+                <div class="col-sm-3 cover">
+                    <img class='img-thumbnail img-responsive center-block' src="{{ MANGA.cover }}" alt="{{ MANGA.title }}">
+                </div>
+                <div class="col-sm-9 info">
+                    <div class="key text-primary"><strong>Original Title</strong></div>
+                    <div class="content">{{ MANGA.original }}</div>
+                    <div class="key text-primary"><strong>Status in Country of Origin</strong></div>
+                    <div class="content">{{ MANGA.volumes }} Volumes  ({% if MANGA.complete %}Complete{% else %}Ongoing{% endif %})</div>
+                    <div class="key text-primary"><strong>Released Volumes</strong></div>
+                    <div class="content">{{ MANGA.released }} Volumes  ({{ MANGA.status.value }})</div>
+                    <div class="key text-primary"><strong>Publisher</strong></div>
+                    <div class="content">{{ MANGA.publisher.value }}</div>
+                    <div class="key text-primary"><strong>Author(s)</strong></div>
+                    <div class="content">{{ MANGA.author|filter_commas }}</div>
+                    <div class="key text-primary"><strong>Artist(s)</strong></div>
+                    <div class="content">{{ MANGA.artist|filter_commas }}</div>
+                    <div class="key text-primary"><strong>Genre</strong></div>
+                    <div class="content">{{ MANGA.genre|filter_commas }}</div>
+                </div>
 
-<hr>
-
-<row>
-    <div class="col-sm-6">
-        <div class="col-sm-12 panel panel-primary ">
-            <h3>Collection</h3>
-            {% if not COLLECTION %}
-                <h5>Collection is Empty</h5>
-            {% else %}
-                <table class="table table-condensed">
-                    <thead>
-                        <th>Title</th>
-                        <!--<th>Cover</th>-->
-                        {% if session.logged_in %}
-                        <th></th>
-                        {% endif %}
-                    </thead>
-                    <tbody>
-                        {% for c in COLLECTION %}
-                            {% if session.logged_in and (c.manga_id, c.volume) in USER_COLLECTION %}
-                            <tr class="info">
-                            {% else %}
-                            <tr>
-                            {% endif %}
-                                <td class="fixed_c"><a href="#cover_{{c.volume}}" data-toggle="modal" data-target="#cover_{{c.volume}}">{{MANGA.title}} {{c.volume}}</a></td>
-                                <!--<td><button type="button" class="btn btn-info btn-sm" >Cover</button></td>-->
-                                <div id="cover_{{c.volume}}" class="modal fade" role="dialog">
-                                  <div class="modal-dialog modal-sm">
-                                    <!-- Modal content-->
-                                    <div class="modal-content">
-                                      <div class="mmodal-header">
-                                        <button type="button" class="close" data-dismiss="modal">&times;</button>
-                                        <h5><strong>{{MANGA.title}} {{c.volume}}</strong></h5>
-                                      </div>
-                                      <div class="modal-body">
-                                          <img src="{{ c.cover }}" class="img-thumbnail img-responsive center-block"/>
-                                      </div>
-                                    </div>
-
-                                  </div>
-                                </div>
-                                <td>
-                                {% if session.logged_in and (c.manga_id, c.volume) in USER_COLLECTION %}
-                                    <a id="buy" class="btn btn-primary btn-sm" data-buy='true' name="{{c.volume}}">
-                                        <span class='glyphicon glyphicon-shopping-cart'></span>
-                                    </a>
-                                {% elif session.logged_in and (c.manga_id, c.volume) not in USER_COLLECTION %}
-                                    <a id="buy" class="btn btn-primary btn-sm" data-buy='false' name="{{c.volume}}">
-                                        <span class='glyphicon glyphicon-shopping-cart'></span>
-                                    </a>
-                                {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% endif %}
+            </div>
         </div>
-
-    </div>
-
-
-    <div class="col-sm-6 ">
-        <div class="col-sm-12 panel panel-primary">
-            <h3>Releases</h3>
-            {% if not RELEASE_LIST %}
-                <h5>No Releases</h5>
-
-            {% else %}
-                <table class="table table-condensed">
-                    <thead>
-                        <tr>
-                            <th>Title</th>
-                            <th>Release Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for r in RELEASE_LIST %}
-                            <tr>
-                                <td>{{r.manga.title}} {{r.volume}}</td>
-                                <td>{{r.release_date.strftime("%d/%m/%Y")}}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% endif %}
+        <div class="tab-pane fade" id="collection">
+            {% include 'item/collection.html' %}
+        </div>
+        <div class="tab-pane fade" id="releases">
+            {% include 'item/releases.html' %}
         </div>
     </div>
-
-</row>
 
 {% endblock %}

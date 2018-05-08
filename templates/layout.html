@@ -9,6 +9,12 @@
     <script type=text/javascript>
         $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
     </script>
+    <script>
+    $(document).ready(function(){
+        $('[data-toggle="popover"]').popover({
+        });
+    });
+    </script>
 
     {% block head %}{% endblock %}
 </head>

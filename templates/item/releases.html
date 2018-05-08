@@ -1,0 +1,29 @@
+<table class="table table-condensed">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Release Date</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for RELEASE in RELEASE_LIST %}
+        <tr>
+            <td>
+                <a data-toggle="popover" data-html="true" data-trigger="focus"
+                   data-content="<img class='pop_img' src='{{ RELEASE.cover }}'>">
+                        <strong>{{ RELEASE.manga.title }} {{ RELEASE.volume }}</strong>
+                </a>
+                {% if RELEASE.subtitle %}
+                <br>
+                <span class="text-muted">{{ RELEASE.subtitle }}</span>
+                {% endif %}
+            </td>
+            <td>{{ RELEASE.release_date|format_date }}</td>
+        </tr>
+    </tbody>
+    {% else %}
+        <tr>
+        <td>Empty</td>
+        </tr>
+    {% endfor %}
+</table>

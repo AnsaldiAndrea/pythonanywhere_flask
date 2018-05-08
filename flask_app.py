@@ -15,30 +15,28 @@
 #   - Add genre and artist/author search
 
 import os
+import traceback
 from datetime import datetime, timedelta
 from functools import wraps
-import traceback
 
-from flask import Flask, render_template, flash, redirect, url_for, session, request, abort, json, Markup
-from flask_mobility.decorators import mobile_template
+from flask import Flask, render_template, flash, redirect, url_for, session, request, abort, json
 from flask_mobility import Mobility
-from flask_sqlalchemy import SQLAlchemy
+from flask_mobility.decorators import mobile_template
 from flask_restful import Resource, Api
-
+from flask_sqlalchemy import SQLAlchemy
+from flask_sslify import SSLify
+from lxml import etree
 from sqlalchemy.ext.hybrid import hybrid_method
 
 import database_helper as db_helper
-from forms import RegisterForm, NewMangaForm, NewReleaseForm
-from old_release_parser import ReleaseParser
-from static.types.enumtypes import Publisher, Status
+from forms import RegisterForm
 from release_parser import ReleaseObject
-
-
-from lxml import etree
+from static.types.enumtypes import Publisher, Status
 
 app = Flask(__name__)
 api = Api(app)
-Mobility(app)
+sslify = SSLify(app)
+mobility = Mobility(app)
 app.secret_key = os.getenv('SECRET_KEY')
 app.config["DEBUG"] = True
 
@@ -116,11 +114,12 @@ class Releases(db.Model):
         self.cover = data['cover']
         self.yearweek = db_helper.to_yearweek(self.release_date)
 
-    manga_id = db.Column(db.String(16), db.ForeignKey('manga.id'), primary_key=True)
+    release_id = db.Column(db.Integer, nullable=False, primary_key=True, autoincrement=True)
+    manga_id = db.Column(db.String(16), db.ForeignKey('manga.id'), nullable=False, unique=True)
     manga = db.relationship("Manga", backref=db.backref("releases", uselist=False))
-    subtitle = db.Column(db.String(50))
-    volume = db.Column(db.Integer, nullable=False, primary_key=True)
-    release_date = db.Column(db.DateTime, nullable=False, primary_key=True)
+    subtitle = db.Column(db.String(64), unique=False)
+    volume = db.Column(db.Integer, nullable=False, unique=True)
+    release_date = db.Column(db.DateTime, nullable=False, unique=True)
     price = db.Column(db.Float(), nullable=False, default=0)
     cover = db.Column(db.Text())
     yearweek = db.Column(db.Integer, nullable=False)
@@ -147,10 +146,11 @@ class Collection(db.Model):
         self.volume = data['volume']
         self.cover = data['cover']
 
-    manga_id = db.Column(db.String(16), db.ForeignKey('manga.id'), primary_key=True)
+    collection_id = db.Column(db.Integer, nullable=False, primary_key=True, autoincrement=True)
+    manga_id = db.Column(db.String(16), db.ForeignKey('manga.id'), nullable=True, unique=True)
     manga = db.relationship("Manga", backref=db.backref("collection", uselist=False))
-    subtitle = db.Column(db.String(50))
-    volume = db.Column(db.Integer, nullable=False, primary_key=True)
+    subtitle = db.Column(db.String(50), unique=True)
+    volume = db.Column(db.Integer, nullable=False, unique=True)
     cover = db.Column(db.Text())
 
 
@@ -188,34 +188,13 @@ class UserManga(db.Model):
 class UserCollection(db.Model):
     __tablename__ = "usercollection"
 
-    def __init__(self, user_id, manga_id, volume):
+    def __init__(self, user_id, collection_id):
         self.user_id = user_id
-        self.manga_id = manga_id
-        self.volume = volume
+        self.collection_id = collection_id
 
     user_id = db.Column(db.String(16), db.ForeignKey('users.id'), primary_key=True)
-    manga_id = db.Column(db.Integer, db.ForeignKey('manga.id'), primary_key=True)
-    manga = db.relationship("Manga", backref=db.backref("usercollection", uselist=False))
-    volume = db.Column(db.Integer, nullable=False, primary_key=True)
-
-
-class Unknown(db.Model):
-    __tablename__ = "unknown"
-
-    def __init__(self, data):
-        self.title = data['title']
-        self.subtitle = data['subtitle']
-        self.publisher = data['publisher']
-        self.release_date = data['release_date']
-        self.price = data['price']
-        self.cover = data['cover']
-
-    title = db.Column(db.String(150), primary_key=True)
-    subtitle = db.Column(db.String(150), primary_key=True)
-    publisher = db.Column(db.String(6))
-    release_date = db.Column(db.DateTime, nullable=False, primary_key=True)
-    price = db.Column(db.Float(), nullable=False, default=0)
-    cover = db.Column(db.Text())
+    collection_id = db.Column(db.Integer, db.ForeignKey('collection.collection_id'), primary_key=True)
+    collection = db.relationship("Collection", backref=db.backref("usercollection", uselist=False))
 
 
 @app.errorhandler(404)
@@ -324,7 +303,7 @@ def manga_item(manga_id):
         if not _manga:
             return abort(404, massage="No Manga with id={}".format(manga_id))
         collection = db_helper.get_collection(manga_id)
-        release_list = db_helper.get_releases_by_id(manga_id)
+        release_list = db_helper.get_releases_by_manga_id(manga_id)
         if session.get('logged_in', False):
             user_collection = db_helper.get_user_collection(session.get('user_id'))
             return render_template('item/manga.html', MANGA=_manga, COLLECTION=collection, RELEASE_LIST=release_list,
@@ -360,91 +339,52 @@ def user_action_manga(manga_id):
                 return abort(500, message="an error occured:\n{}".format(traceback.format_exc(e)))
     else:
         return abort(404, message="cannot find manga with id={}".format(manga_id))
-    return "OK", 200, {'ContentType':'application/json'}
+    return "OK", 200, {'ContentType': 'application/json'}
 
 
-@DeprecationWarning
-@app.route("/manga/<string:manga_id>/add", methods=["POST"])
+
+@app.route("/user/release/<string:release_id>", methods=["POST", "DELETE"])
 @is_logged_in
-def add_manga(manga_id):
-    user_id = session['user_id']
-    um = UserManga(user_id, manga_id)
-    try:
-        db.session.add(um)
-        db.session.commit()
-        return json.dumps({'success': True, 'manga_id': manga_id})
-    except Exception as e:
-        return json.dumps({'success': False, 'error': str(e)})
+def user_action_release(release_id):
+    r = db_helper.get_release_by_id(release_id)
+    if r:
+        c = db_helper.get_volume_from(r.manga_id, r.volume, r.subtitle)
+        if c:
+            return user_action_collection(c.collection_id)
+        else:
+            return abort(404, message="cannot find volume with values=[{},{},{}]".format(r.manga_id, r.volume, r.subtitle))
+    else:
+        return abort(404, message="cannot find release with release_id={}".format(r.release_id))
 
 
-@DeprecationWarning
-@app.route("/manga/<string:manga_id>/delete", methods=["POST"])
+@app.route("/user/collection/<string:collection_id>", methods=["POST", "DELETE"])
 @is_logged_in
-def delete_manga(manga_id):
-    user_id = session['user_id']
-    try:
-        um = UserManga.query.filter_by(user_id=user_id, manga_id=manga_id).first()
-        db.session.delete(um)
-        db.session.commit()
-        return json.dumps({'success': True, 'manga_id': manga_id})
-    except Exception as e:
-        return json.dumps({'success': False, 'error': str(e)})
-
-
-@app.route("/user/collection/<string:manga_id>/<int:volume>", methods=["POST", "DELETE"])
-@is_logged_in
-def user_action_collection(manga_id, volume):
-    c = db_helper.get_volume(manga_id, volume)
+def user_action_collection(collection_id):
+    c = db_helper.get_volume(collection_id)
     if c:
         # POST REQUEST: ADD VOLUME TO USER LIBRARY
         if request.method == "POST":
             try:
-                if not db_helper.is_volume_in_user_library(session['user_id'], manga_id, volume):
-                    uc = UserCollection(session['user_id'], manga_id, volume)
+                if not db_helper.is_volume_in_user_library(session['user_id'], collection_id):
+                    uc = UserCollection(session['user_id'], collection_id)
                     db.session.add(uc)
                     db.session.commit()
             except Exception as e:
                 with open('rel.log', 'w+') as f:
-                    f.write("...\n"+traceback.format_exc(e))
+                    f.write("...\n" + traceback.format_exc(e))
                 return abort(500, message="an error occured:\n{}".format(traceback.format_exc(e)))
         # DELETE REQUEST: REMOVE VOLUME FROM USER LIBRARY
         elif request.method == "DELETE":
             try:
-                uc = db_helper.is_volume_in_user_library(session['user_id'], manga_id, volume)
+                uc = db_helper.is_volume_in_user_library(session['user_id'], collection_id)
                 if uc:
                     db.session.delete(uc)
                     db.session.commit()
             except Exception as e:
                 return abort(500, message="an error occured:\n{}".format(traceback.format_exc(e)))
     else:
-        return abort(404, message="cannot find volume with id={} and volume={}".format(manga_id, volume))
-    return "OK", 200, {'ContentType':'application/json'}
-
-
-@DeprecationWarning
-@app.route("/releases/<string:manga_id>/<int:volume>/add", methods=["POST"])
-@is_logged_in
-def add_volume(manga_id, volume):
-    try:
-        uv = UserCollection(session['user_id'], manga_id, volume)
-        db.session.add(uv)
-        db.session.commit()
-        return json.dumps({'success': True, 'manga_id': manga_id, 'volume': volume})
-    except Exception as e:
-        return json.dumps({'success': False, 'error': str(e)})
-
-
-@DeprecationWarning
-@app.route("/releases/<string:manga_id>/<int:volume>/delete", methods=["POST"])
-@is_logged_in
-def delete_volume(manga_id, volume):
-    try:
-        uv = UserCollection.query.filter_by(user_id=session['user_id'], manga_id=manga_id, volume=volume).first()
-        db.session.delete(uv)
-        db.session.commit()
-        return json.dumps({'success': True, 'manga_id': manga_id, 'volume': volume})
-    except Exception as e:
-        return json.dumps({'success': False, 'error': str(e)})
+        return abort(404, message="cannot find volume with collection_id={}".format(collection_id))
+    return "OK", 200, {'ContentType': 'application/json'}
 
 
 header = {'prev': 'Previous Weeks', 'this': 'This Week', 'next': 'Next Week', 'future': 'Future Releases'}
@@ -490,121 +430,13 @@ def admin_login():
     return render_template('admin/admin.html')
 
 
-@app.route("/admin/unknown")
-@is_admin
-def unknown():
-    u = Unknown.query.all()
-    return render_template('admin/unknown.html', unknown=u)
-
-"""
-@app.route("/admin/new_manga", methods=['GET', 'POST'])
-@is_admin
-def admin_new_manga():
-    if request.method == 'POST':
-        if request.form['btn'] == 'Submit JSON':
-            # check if the post request has the file part
-            if 'file' not in request.files:
-                flash('No file part', 'danger')
-                return redirect(request.url)
-            file = request.files['file']
-            # if user does not select file, browser also
-            # submit a empty part without filename
-            if file.filename == '':
-                flash('No selected file', 'danger')
-                return redirect(request.url)
-            if file and file.filename.endswith('.json'):
-                json_data = json.loads(file.read().decode('utf-8'))
-                if 'info' in json_data:
-                    try:
-                        title = json_data['info']['title']
-                        db_helper.insert_manga(db, json_data['info'])
-                        if 'release' in json_data:
-                            for r in json_data['release']:
-                                db_helper.insert_release(db, r)
-                        if 'collection' in json_data:
-                            for i in json_data['collection']:
-                                db_helper.insert_collection_item(db, i)
-                        message = Markup('<strong>{}</strong> addedd successfully'.format(title))
-                        flash(message, 'success')
-                        return redirect(url_for('dashboard'))
-                    except Exception as e:
-                        message = Markup('<strong>Error</strong>\nA problem occurred while adding manga: {}'.format(
-                            traceback.format_exc()))
-                        flash(message, 'danger')
-                        return redirect(request.url)
-                else:
-                    flash('Uploaded file has wrong format', 'danger')
-                    return redirect(request.url)
-            else:
-                flash('Uploaded file is not JSON')
-                return redirect(request.url)
-        else:
-            form = NewMangaForm(request.form)
-            if form.validate():
-                try:
-                    title = request.form['title']
-                    db_helper.insert_manga(db, request.form)
-                    message = Markup('<strong>{}</strong> addedd successfully'.format(title))
-                    flash(message, 'success')
-                    return render_template('admin/new_manga.html', form=form)
-                except Exception as e:
-                    message = Markup('<strong>Error</strong>\nA problem occurred while adding manga: {}'.format(e))
-                    flash(message, 'danger')
-                    return render_template('admin/new_manga.html', form=form)
-            else:
-                return render_template('admin/new_manga.html', form=form)
-    else:
-        form = NewMangaForm(request.form)
-        return render_template('admin/new_manga.html', form=form)
-"""
-
-
-@app.route("/admin/new_release", methods=['GET', 'POST'])
-@is_admin
-def admin_new_release():
-    form = NewReleaseForm(request.form)
-    if request.method == 'POST':
-        pass
-    else:
-        q = Manga.query.all()
-        title_list = [x.title for x in q]
-        title_dict = {x.title: x.id for x in q}
-        title = request.args.get('title', '')
-        subtitle = request.args.get('subtitle', '')
-        release_date = request.args.get('release_date', '')
-        price = request.args.get('price', '')
-        cover = request.args.get('cover', '')
-        return render_template('admin/new_release.html', form=form, title_list=title_list, title_dict=title_dict,
-                               title=title, subtitle=subtitle, release_date=release_date, price=price, cover=cover)
-
-
-@app.route("/admin/upload", methods=["GET", "POST"])
-@is_admin
-def upload():
-    if request.method == 'POST':
-        if request.form['btn'] == 'Submit JSON':
-            # check if the post request has the file part
-            if 'file' not in request.files:
-                flash('No file part', 'danger')
-                return redirect(request.url)
-            file = request.files['file']
-            # if user does not select file, browser also
-            # submit a empty part without filename
-            if file.filename == '':
-                flash('No selected file', 'danger')
-                return redirect(request.url)
-            if file and file.filename.endswith('.json'):
-                flash(file.read().decode('utf-8'), 'success')
-                return redirect(request.url)
-    return render_template('admin/upload.html')
-
-
 class ApiIds(Resource):
     def get(self):
         data = db_helper.get_ids()
         if not data:
             return abort(505, 'unexpected error')
         return json.dumps(data)
+
 
 class ApiMangaId(Resource):
     def get(self, manga_id):
@@ -668,17 +500,28 @@ class ApiReleases(Resource):
         return {'message': x['message']}
 
 
-class ApiParserOld(Resource):
-    def post(self):
-        return ReleaseParser.parse_single(request.get_json())
-
-
 api.add_resource(ApiIds, '/api/ids')
 api.add_resource(ApiMangaId, '/api/manga/<string:manga_id>')
 api.add_resource(ApiManga, '/api/manga')
 api.add_resource(ApiMangaUpdate, '/api/manga/update')
 api.add_resource(ApiMangaUpdateFrom, '/api/manga/update/from/<string:yearweek>')
 api.add_resource(ApiAlias, '/api/alias')
-api.add_resource(ApiParserOld, '/api/releases/parse_old')
 api.add_resource(ApiReleases, '/api/releases')
 api.add_resource(ApiParseRelease, '/api/releases/parse')
+
+
+def filter_format_datetime(value: datetime):
+    return value.strftime("%d/%m/%Y")
+
+
+def filter_format_commas(value:str):
+    return value.replace(",", ", ")
+
+
+def filter_format_price(value):
+    return "{:10.2f}".format(value)
+
+
+app.jinja_env.filters['format_date'] = filter_format_datetime
+app.jinja_env.filters['format_commas'] = filter_format_commas
+app.jinja_env.filters['format_price'] = filter_format_price
