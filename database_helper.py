@@ -224,7 +224,8 @@ def insert_release(db, obj):
 
 def insert_release_map(db, release_id, collection_id):
     from flask_app import ReleaseMap
-    rmap = ReleaseMap.query.filter(ReleaseMap.release_id == release_id, ReleaseMap.collection_id == collection_id).first()
+    rmap = ReleaseMap.query.filter(ReleaseMap.release_id == release_id,
+                                   ReleaseMap.collection_id == collection_id).first()
     if not rmap:
         rmap = ReleaseMap(release_id, collection_id)
         db.session.add(rmap)
@@ -238,7 +239,7 @@ def insert_collection(db, release):
         db.session.add(c)
         db.session.commit()
         return {'status': 'OK',
-                'obj': c}
+                'object': c}
     except Exception:
         return {'status': 'error',
                 'source': '{id}-{volume} added'.format_map(release.as_dict()),
@@ -255,8 +256,8 @@ def update_collection(db, release):
                 c.cover = release.cover
         else:
             u = insert_collection(db, release)
-            if u['status']=='OK':
-                c = u['obj']
+            if u['status'] == 'OK':
+                c = u['object']
             else:
                 c = None
         db.session.commit()
