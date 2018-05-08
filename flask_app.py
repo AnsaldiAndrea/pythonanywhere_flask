@@ -204,8 +204,8 @@ class ReleaseMap(db.Model):
         self.release_id = release_id
         self.collection_id = collection_id
 
-    release_id = db.Column(db.Integer, db.ForeignKey('releases.release_id'), cascade="all, delete-orphan")
-    collection_id = db.Column(db.Integer, db.ForeignKey('collection.collection_id'), cascade="all, delete-orphan")
+    release_id = db.Column(db.Integer, db.ForeignKey('releases.release_id'), primary_key=True)
+    collection_id = db.Column(db.Integer, db.ForeignKey('collection.collection_id'))
 
 
 @app.errorhandler(404)
