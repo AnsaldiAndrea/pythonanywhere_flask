@@ -116,7 +116,7 @@ class Releases(db.Model):
 
     release_id = db.Column(db.Integer, nullable=False, primary_key=True, autoincrement=True)
     manga_id = db.Column(db.String(16), db.ForeignKey('manga.id'), nullable=False, unique=True)
-    manga = db.relationship("Manga", backref=db.backref("releases", uselist=False))
+    manga = db.relationship("Manga", backref=db.backref("releases", uselist=False, order_by="Manga.title"))
     subtitle = db.Column(db.String(64), unique=False)
     volume = db.Column(db.Integer, nullable=False, unique=True)
     release_date = db.Column(db.DateTime, nullable=False, unique=True)

@@ -35,11 +35,11 @@
                         {% for r in value %}
                             <tr class="info">
                                 <td class='fixed_c'>
-                                    <a data-toggle="popover" data-html="true"
+                                    <a data-toggle="popover" data-html="true" data-trigger="hover"
                                        data-content="<img class='pop_img' src='{{ r.cover }}'>">
                                             <strong>{{r.manga.title}} {{r.volume}}</strong>
                                     </a>
-                                    {% if r.subtile %}
+                                    {% if r.subtitle %}
                                     <br>
                                     <span class="text-muted">{{ r.subtitle }}</span>
                                     {% endif %}

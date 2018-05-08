@@ -125,7 +125,8 @@ def get_release_by_id(release_id):
 
 def get_releases_by_week(_from=None, _to=None, _at=None):
     from flask_app import Releases
-    return Releases.query.filter(Releases.bounds(_from=_from, _to=_to, _at=_at)).order_by(Releases.release_date).all()
+    result =  Releases.query.filter(Releases.bounds(_from=_from, _to=_to, _at=_at)).order_by(Releases.release_date).all()
+    return sorted(result, key = lambda x : (x.release_date, x.manga.title))
 
 
 def get_releases_by_manga_id(manga_id):
@@ -142,7 +143,8 @@ def get_user_releases(user_id, _from=None, _to=None, _at=None):
     release_list = [r for r in release_list if r.manga_id in user_m]
     user_rel = UserCollection.query.join(ReleaseMap, ReleaseMap.collection_id == UserCollection.collection_id) \
         .filter(UserCollection.user_id == user_id).add_columns(ReleaseMap.release_id).all()
-    return [r for r in release_list if not any(ur for ur in user_rel if r.release_id == ur.release_id)]
+    result = [r for r in release_list if not any(ur for ur in user_rel if r.release_id == ur.release_id)]
+    return sorted(result, key = lambda x : (x.release_date, x.manga.title))
 
 
 def get_collection(manga_id):
@@ -217,7 +219,7 @@ def insert_release(db, obj):
     u = update_collection(db, release)
     if not u['status'] == 'OK':
         return u
-    insert_release_map(db, r.release_id, u['obj'].collection_id)
+    insert_release_map(db, r.release_id, u['object'].collection_id)
     u = update_manga_from_release(db, release)
     return u
 
