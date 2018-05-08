@@ -283,7 +283,7 @@ def update_manga_from_db(db, release):
                 m.status = Status.Complete
             db.session.commit()
         return {'status': 'OK',
-                'message': 'manga {} updated'.format_map(m.title)}
+                'message': 'manga {} updated'.format(m.title)}
     except Exception:
         return {'status': 'error',
                 'source': '{}-{}-{}'.format(release.manga.title, release.volume, release.release_date),

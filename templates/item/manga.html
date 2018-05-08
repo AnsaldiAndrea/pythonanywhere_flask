@@ -38,11 +38,11 @@
                     <div class="key text-primary"><strong>Publisher</strong></div>
                     <div class="content">{{ MANGA.publisher.value }}</div>
                     <div class="key text-primary"><strong>Author(s)</strong></div>
-                    <div class="content">{{ MANGA.author|filter_commas }}</div>
+                    <div class="content">{{ MANGA.authors|format_commas }}</div>
                     <div class="key text-primary"><strong>Artist(s)</strong></div>
-                    <div class="content">{{ MANGA.artist|filter_commas }}</div>
+                    <div class="content">{{ MANGA.artists|format_commas }}</div>
                     <div class="key text-primary"><strong>Genre</strong></div>
-                    <div class="content">{{ MANGA.genre|filter_commas }}</div>
+                    <div class="content">{{ MANGA.genre|format_commas }}</div>
                 </div>
 
             </div>
