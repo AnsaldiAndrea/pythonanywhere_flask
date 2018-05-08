@@ -120,7 +120,7 @@ def is_volume_in_user_library(user_id, collection_id):
 
 def get_release_by_id(release_id):
     from flask_app import Releases
-    return Releases.query.filter(Releases.release_id==release_id).first()
+    return Releases.query.filter(Releases.release_id == release_id).first()
 
 
 def get_releases_by_week(_from=None, _to=None, _at=None):
@@ -134,31 +134,40 @@ def get_releases_by_manga_id(manga_id):
 
 
 def get_user_releases(user_id, _from=None, _to=None, _at=None):
-    from flask_app import Releases, UserCollection
+    from flask_app import Releases, UserCollection, ReleaseMap
 
     print(time.process_time())
     user_m = get_user_manga(user_id)
     print(time.process_time())
-    release_list = Releases.query.filter(Releases.bounds(_from=_from, _to=_to, _at=_at)).order_by(Releases.release_date).all()
+    release_list = Releases.query.filter(Releases.bounds(_from=_from, _to=_to, _at=_at)).order_by(
+        Releases.release_date).all()
     print(time.process_time())
     release_list = [r for r in release_list if r.manga_id in user_m]
     print(time.process_time())
-    user_col = UserCollection.query.filter(UserCollection.user_id == user_id).all()
-    print(time.process_time())
-    user_col = [(c.collection.manga_id, c.collection.volume, c.collection.subtitle) for c in user_col]
-    print(time.process_time())
-    result = [r for r in release_list if (r.manga_id, r.volume, r.subtitle) not in user_col]
-    print(time.process_time())
-    return result
+    # user_col = UserCollection.query.filter(UserCollection.user_id == user_id).all()
+
+    user_rel = UserCollection.query.join(ReleaseMap, ReleaseMap.collection_id == UserCollection.collection_id) \
+        .filter(UserCollection.user_id == user_id).add_columns(ReleaseMap.release_id).all()
+
+    return [r for r in release_list if not any(ur for ur in user_rel if r.release_id == ur.release_id)]
+
+    # print(time.process_time())
+    # user_col = [(c.collection.manga_id, c.collection.volume, c.collection.subtitle) for c in user_col]
+    # print(time.process_time())
+    # result = [r for r in release_list if (r.manga_id, r.volume, r.subtitle) not in user_col]
+    # print(time.process_time())
+    # return result
 
 
 def filter_releases_by_user(release_list, user_manga, user_collection):
-    return [x for x in release_list if (x.manga_id in user_manga) and ((x.manga_id, x.volume, x.subtitle) not in user_collection)]
+    return [x for x in release_list if
+            (x.manga_id in user_manga) and ((x.manga_id, x.volume, x.subtitle) not in user_collection)]
 
 
 def get_collection(manga_id):
     from flask_app import Collection
-    return Collection.query.filter(Collection.manga_id == manga_id).order_by(Collection.volume, Collection.subtitle).all()
+    return Collection.query.filter(Collection.manga_id == manga_id).order_by(Collection.volume,
+                                                                             Collection.subtitle).all()
 
 
 def get_volume(collection_id):
@@ -247,7 +256,8 @@ def insert_collection(db, release):
 def update_collection(db, release):
     from flask_app import Collection
     try:
-        c = Collection.query.filter(Collection.manga_id == release.id, Collection.volume == release.volume, Collection.subtitle == release.subtitle).first()
+        c = Collection.query.filter(Collection.manga_id == release.id, Collection.volume == release.volume,
+                                    Collection.subtitle == release.subtitle).first()
         if c:
             if is_cover_null(c.cover):
                 c.cover = release.cover

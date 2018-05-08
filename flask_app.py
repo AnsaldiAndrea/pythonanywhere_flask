@@ -197,6 +197,17 @@ class UserCollection(db.Model):
     collection = db.relationship("Collection", backref=db.backref("usercollection", uselist=False))
 
 
+class ReleaseMap(db.Model):
+    __tablename__ = "releasemap"
+
+    def __init__(self, release_id, collection_id):
+        self.release_id = release_id
+        self.collection_id = collection_id
+
+    release_id = db.Column(db.Integer, db.ForeignKey('releases.release_id'), cascade="all, delete-orphan")
+    collection_id = db.Column(db.Integer, db.ForeignKey('collection.collection_id'), cascade="all, delete-orphan")
+
+
 @app.errorhandler(404)
 def page_not_found(error):
     return render_template('error_404.html'), 404
