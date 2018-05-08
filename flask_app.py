@@ -353,7 +353,6 @@ def user_action_manga(manga_id):
     return "OK", 200, {'ContentType': 'application/json'}
 
 
-
 @app.route("/user/release/<string:release_id>", methods=["POST", "DELETE"])
 @is_logged_in
 def user_action_release(release_id):
@@ -363,7 +362,8 @@ def user_action_release(release_id):
         if c:
             return user_action_collection(c.collection_id)
         else:
-            return abort(404, message="cannot find volume with values=[{},{},{}]".format(r.manga_id, r.volume, r.subtitle))
+            return abort(404,
+                         message="cannot find volume with values=[{},{},{}]".format(r.manga_id, r.volume, r.subtitle))
     else:
         return abort(404, message="cannot find release with release_id={}".format(r.release_id))
 
@@ -523,7 +523,7 @@ def filter_format_datetime(value: datetime):
     return value.strftime("%d/%m/%Y")
 
 
-def filter_format_commas(value:str):
+def filter_format_commas(value: str):
     return value.replace(",", ", ")
 
 
