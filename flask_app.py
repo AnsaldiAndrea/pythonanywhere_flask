@@ -398,18 +398,16 @@ def releases(template):
     yearweek_next = db_helper.to_yearweek(datetime.now() + timedelta(weeks=1))
     yearweek_future = db_helper.to_yearweek(datetime.now() + timedelta(weeks=2))
 
-    releases_prev = db_helper.get_releases_by_week(_from=yearweek_prev, _to=yearweek_now)
-    releases_this = db_helper.get_releases_by_week(_at=yearweek_now)
-    releases_next = db_helper.get_releases_by_week(_at=yearweek_next)
-    releases_future = db_helper.get_releases_by_week(_from=yearweek_future)
-
     if session.get('logged_in', False):
-        user_manga = db_helper.get_user_manga(session.get('user_id'))
-        user_collection = db_helper.get_user_collection(session.get('user_id'))
-        releases_prev = db_helper.filter_releases_by_user(releases_prev, user_manga, user_collection)
-        releases_this = db_helper.filter_releases_by_user(releases_this, user_manga, user_collection)
-        releases_next = db_helper.filter_releases_by_user(releases_next, user_manga, user_collection)
-        releases_future = db_helper.filter_releases_by_user(releases_future, user_manga, user_collection)
+        releases_prev = db_helper.get_user_releases(session.get('user_id'), _from=yearweek_prev, _to=yearweek_now)
+        releases_this = db_helper.get_user_releases(session.get('user_id'), _at=yearweek_now)
+        releases_next = db_helper.get_user_releases(session.get('user_id'), _at=yearweek_next)
+        releases_future = db_helper.get_user_releases(session.get('user_id'), _from=yearweek_future)
+    else:
+        releases_prev = db_helper.get_releases_by_week(_from=yearweek_prev, _to=yearweek_now)
+        releases_this = db_helper.get_releases_by_week(_at=yearweek_now)
+        releases_next = db_helper.get_releases_by_week(_at=yearweek_next)
+        releases_future = db_helper.get_releases_by_week(_from=yearweek_future)
 
     release_dict = {'prev': releases_prev,
                     'this': releases_this,

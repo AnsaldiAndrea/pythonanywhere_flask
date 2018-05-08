@@ -132,6 +132,16 @@ def get_releases_by_manga_id(manga_id):
     return Releases.query.filter(Releases.manga_id == manga_id).order_by(Releases.release_date).all()
 
 
+def get_user_releases(user_id, _from=None, _to=None, _at=None):
+    from flask_app import Releases, UserCollection
+    user_m = get_user_manga(user_id)
+    release_list = Releases.query.filter(Releases.bounds(_from=_from, _to=_to, _at=_at),
+                                         Releases.manga_id.in_(user_m)).order_by(Releases.release_date).all()
+    user_col = UserCollection.query.filter(UserCollection.user_id == user_id).all()
+    user_col = [(c.collection.manga_id, c.collection.volume, c.collection.subtitle) for c in user_col]
+    return [r for r in release_list if (r.manga_id, r.volume, r.subtitle) not in user_col]
+
+
 def filter_releases_by_user(release_list, user_manga, user_collection):
     return [x for x in release_list if (x.manga_id in user_manga) and ((x.manga_id, x.volume, x.subtitle) not in user_collection)]
 
