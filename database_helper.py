@@ -216,8 +216,18 @@ def insert_release(db, obj):
     u = update_collection(db, release)
     if not u['status'] == 'OK':
         return u
+    insert_release_map(db, r.release_id, u['obj'].collection_id)
     u = update_manga_from_release(db, release)
     return u
+
+
+def insert_release_map(db, release_id, collection_id):
+    from flask_app import ReleaseMap
+    rmap = ReleaseMap.query.filter(ReleaseMap.release_id == release_id, ReleaseMap.collection_id == collection_id).first()
+    if not rmap:
+        rmap = ReleaseMap(release_id, collection_id)
+        db.session.add(rmap)
+        db.session.commit()
 
 
 def insert_collection(db, release):
@@ -227,7 +237,7 @@ def insert_collection(db, release):
         db.session.add(c)
         db.session.commit()
         return {'status': 'OK',
-                'message': '{id}-{volume} added'.format_map(release.as_dict())}
+                'obj': c}
     except Exception:
         return {'status': 'error',
                 'source': '{id}-{volume} added'.format_map(release.as_dict()),
@@ -243,10 +253,14 @@ def update_collection(db, release):
             if is_cover_null(c.cover):
                 c.cover = release.cover
         else:
-            insert_collection(db, release)
+            u = insert_collection(db, release)
+            if u['status']=='OK':
+                c = u['obj']
+            else:
+                c = None
         db.session.commit()
         return {'status': 'OK',
-                'message': '{id}-{volume} added'.format_map(release.as_dict())}
+                'object': c}
     except Exception:
         return {'status': 'error',
                 'source': '{id}-{volume}'.format_map(release.as_dict()),
