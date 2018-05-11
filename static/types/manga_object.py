@@ -8,14 +8,14 @@ class MangaObject:
             self.title = obj.get('title', '')
             self.original = obj.get('original', '')
             self.publisher = obj.get('publisher', 'planet')
-            self.status = obj['status']
+            self.status = obj.get("status", "tba")
             self.volumes = obj['volumes']
             self.released = obj.get('released', 0)
             self.author = ','.join(obj.get('author', ''))
             self.artist = ','.join(obj.get('artist', ''))
             self.genre = ','.join(obj.get('genre', ''))
             self.cover = obj.get('cover', '')
-            self.complete = obj['complete'] == 'True'
+            self.complete = obj['complete']
 
     def get_id(self):
         return self.info['id']

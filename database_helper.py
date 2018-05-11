@@ -123,15 +123,15 @@ def get_release_by_id(release_id):
     return Releases.query.filter(Releases.release_id == release_id).first()
 
 
+def get_releases_by_manga_id(manga_id):
+    from flask_app import Releases
+    return Releases.query.filter(Releases.manga_id == manga_id).order_by(Releases.release_date).all()
+
+
 def get_releases_by_week(_from=None, _to=None, _at=None):
     from flask_app import Releases
     result =  Releases.query.filter(Releases.bounds(_from=_from, _to=_to, _at=_at)).order_by(Releases.release_date).all()
     return sorted(result, key = lambda x : (x.release_date, x.manga.title))
-
-
-def get_releases_by_manga_id(manga_id):
-    from flask_app import Releases
-    return Releases.query.filter(Releases.manga_id == manga_id).order_by(Releases.release_date).all()
 
 
 def get_user_releases(user_id, _from=None, _to=None, _at=None):
