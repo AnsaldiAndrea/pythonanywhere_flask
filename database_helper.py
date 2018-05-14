@@ -252,13 +252,11 @@ def update_collection(db, release):
     from flask_app import Collection
     try:
         if "Ristampa" in release.subtitle:
-            subtitle = release.subtitle.replace(" - Ristampa", "").strip()
-            subtitle = subtitle.replace("Ristampa", "").strip()
-        else:
-            subtitle = release.subtitle
+            release.subtitle = release.subtitle.replace(" - Ristampa", "").strip()
+            release.subtitle = release.subtitle.replace("Ristampa", "").strip()
 
         c = Collection.query.filter(Collection.manga_id == release.id, Collection.volume == release.volume,
-                                    Collection.subtitle == subtitle).first()
+                                    Collection.subtitle == release.subtitle).first()
         if c:
             if is_cover_null(c.cover):
                 c.cover = release.cover
