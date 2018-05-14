@@ -1,6 +1,7 @@
 # TODO:
 #   Important:
-#   - Replace all instances of manga or release dictionary with new Object classes
+#   - Assign 0 to volume if no volume is present and subtitle is different from "ristampa"
+#   - Replace all instances of manga or release dictionary with new Object classes (MIGHT BE DONE - NEEDS CHECKING)
 #   - Remove Admin pages (useless for now) - keep admin status
 #   Next update:
 #   - Add statistics to index page

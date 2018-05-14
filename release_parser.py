@@ -244,7 +244,10 @@ class ParserPlanet(Parser):
             if len(groups) > 1:
                 self.obj.volume = int(groups[1])
             else:
-                self.obj.volume = 1
+                if not self.obj.subtitle == "Ristampa":
+                    self.obj.volume = 1
+                else:
+                    self.obj.volume = 0
 
 
 class ParserStar(Parser):

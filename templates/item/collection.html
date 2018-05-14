@@ -13,7 +13,7 @@
             <td>
                 <a data-toggle="popover" data-html="true" data-trigger="hover"
                    data-content="<img class='pop_img' src='{{ ITEM.cover }}'>">
-                    <strong>{{ ITEM.manga.title }} {{ ITEM.volume }}</strong>
+                    <strong>{{ ITEM.manga.title }}{% if ITEM.volume!=0 %} {{ITEM.volume}}{% endif %}</strong>
                 </a>
                 {% if ITEM.subtitle %}
                 <br>

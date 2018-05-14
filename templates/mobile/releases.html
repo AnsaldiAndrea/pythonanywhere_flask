@@ -41,7 +41,7 @@
                                 </td>
                                 <td>
                                     <div>
-                                        <span><strong><a>{{ r.manga.title }} {{ r.volume }}</a></strong></span>
+                                        <span><strong><a>{{ r.manga.title }}{% if r.volume!=0 %} {{r.volume}}{% endif %}</a></strong></span>
                                         {% if r.subtitle %}
                                         <br>
                                         <span class="text-muted">{{ r.subtitle }}</span>

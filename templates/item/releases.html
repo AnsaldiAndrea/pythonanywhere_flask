@@ -11,7 +11,7 @@
             <td>
                 <a data-toggle="popover" data-html="true" data-trigger="focus"
                    data-content="<img class='pop_img' src='{{ RELEASE.cover }}'>">
-                        <strong>{{ RELEASE.manga.title }} {{ RELEASE.volume }}</strong>
+                        <strong>{{ RELEASE.manga.title }}{% if RELEASE.volume!=0 %} {{RELEASE.volume}}{% endif %}</strong>
                 </a>
                 {% if RELEASE.subtitle %}
                 <br>
