@@ -1,16 +1,25 @@
 {% extends 'layout.html' %}
 
+{% block head %}
+    <title>Manga Manager: Login</title>
+{% endblock %}
+
 {% block body %}
-  <h1>Login</h1>
-  <form action="" method="POST">
-    <div class="form-group">
-      <label for="username">Username</label>
-      <input id="username" type="text" name="username" class="form-control" value={{request.form.username}}>
-    </div>
-    <div class="form-group">
-      <label for="password">Password</label>
-      <input id="password" type="password" name="password" class="form-control" value={{request.form.password}}>
-    </div>
-    <button type="submit" class="btn btn-primary">Submit</button>
-  </form>
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for("index") }}">Home</a></li>
+        <li class="active">Login</li>
+    </ol>
+
+    <h1>Login</h1>
+    <form action="" method="POST">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input id="username" type="text" name="username" class="form-control" value={{request.form.username}}>
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input id="password" type="password" name="password" class="form-control" value={{request.form.password}}>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
 {% endblock %}

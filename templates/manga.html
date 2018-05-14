@@ -2,87 +2,23 @@
 
 {% block head %}
     <script type="text/javascript" src="/static/script/manga.js"></script>
-    <!--
-    <script type="text/javascript">
-        $(function() {
-            $("a#interested").click(function() {
-                var manga_id = $(this).attr("name");
-                var action = $(this).attr("data-action");
-                var button = $(this);
-                var parent = $(this).parent().parent();
-                var icon = $(":first-child", this);
-                $.ajax({
-                    type : "POST",
-                    url : $SCRIPT_ROOT + "/manga/" + manga_id + "/" + action,
-                    contentType: 'application/json;charset=UTF-8',
-                    success: function(response) {
-                        var response_success = JSON.parse(response);
-                        if(response_success.success){
-                            if(action==="delete"){
-                              parent.removeClass("info");
-                              button.removeClass("btn-primary");
-                              button.addClass("btn-default");
-                              button.attr("data-action", "add");
-                              icon.removeClass('glyphicon-star');
-                              icon.addClass("glyphicon-star-empty");
-                            } else {
-                              parent.addClass("info");
-                              button.removeClass("btn-default");
-                              button.addClass("btn-primary");
-                              button.attr("data-action","delete");
-                              icon.removeClass('glyphicon-star-empty');
-                              icon.addClass("glyphicon-star");
-                            }
-                        } else {
-                            var response_error = JSON.parse(response);
-                            console.log(response_error.error)
-                        }
-                    },
-                    error: function(error){
-                    	console.log(error);
-                    }
-                })
-            });
-        });
-
-    </script>
-
-    <script  type="text/javascript">
-    $(function() {
-        $("#search").on("keyup", function() {
-            var value = $(this).val();
-            console.log(value);
-            $("table tr").each(function(index) {
-                if (index !== 0) {
-                    var id = $(this).find("td:first").text();
-                    if (id.toLowerCase().indexOf(value.toLowerCase()) !== 0) {
-                        $(this).hide();
-                    }
-                    else {
-                        $(this).show();
-                    }
-                }
-            });
-        });
-    });
-    </script>
-    -->
-    <style>
-        .table > tbody > tr > td {
-            vertical-align: middle;
-        }
-    </style>
-
+    <link rel="stylesheet" type="text/css" href="/static/css/root.css">
+    <title>MangaManager: Manga</title>
 
 {% endblock %}
 
 {% block body %}
 
-<h2>Manga</h2>
-<p>List of all available Manga</p>
-<hr>
-<div class="panel">
-    <div class="row container">
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for("index") }}">Home</a></li>
+        <li class="active">Manga</li>
+    </ol>
+
+    <h2>Manga</h2>
+    <p>List of all available Manga</p>
+
+    <div class="panel">
+        <div class="row container">
             <div class="input-group">
                 <input type="search" class="form-control" placeholder="Search..." id="search"/>
                 <div class="input-group-btn">
@@ -91,53 +27,43 @@
                     </button>
                 </div>
             </div>
+        </div>
     </div>
-</div>
 
-<div class='panel panel-primary'>
-    <table class="table table-condensed">
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Publisher</th>
-          {% if session.logged_in %}
-          <th></th>
-          {% endif %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for m in MANGA_LIST %}
-            {% if session.logged_in and m.id in USER_LIST %}
-            <tr class='info' id={{m.id}}>
-              <td><a href="{{ url_for("manga_item", manga_id=m.id) }}"><strong>{{m.title}}</strong></a></td>
-              <td>{{m.publisher.value}}</td>
-              <td>
-                  <a href="javascript:void(0)" class="btn btn-primary pull-right btn-sm" id='interested' name='{{m.id}}' data-action="delete">
-                    <span class='glyphicon glyphicon-star'></span>
-                  </a>
-              </td>
+    <div class='panel panel-primary'>
+        <table class="table table-condensed">
+            <thead>
+            <tr>
+                {% if session.logged_in %}
+                    <th></th>
+                {% endif %}
+                <th>Title</th>
+                <th>Publisher</th>
             </tr>
-            {% elif session.logged_in and not m.id in USER_LIST %}
-            <tr id={{m.id}}>
-              <td><a href="{{ url_for("manga_item", manga_id=m.id) }}"><strong>{{m.title}}</strong></a></td>
-              <td>{{m.publisher.value}}</td>
-              <td>
-                  <a href="javascript:void(0)" class="btn btn-default pull-right btn-sm" id='interested' name='{{m.id}}' data-action="add">
-                    <span class='glyphicon glyphicon-star-empty'></span>
-                  </a>
-              </td>
-            </tr>
-            {% else %}
-            <tr id={{m.id}}>
-              <td><a href="{{ url_for("manga_item", manga_id=m.id) }}"><strong>{{m.title}}</strong></a></td>
-              <td>{{m.publisher.value}}</td>
-            </tr>
-            {% endif %}
-        {% endfor %}
-      </tbody>
-    </table>
+            </thead>
+            <tbody>
+            {% for m in MANGA_LIST %}
+                <tr id="{{ m.id }}" class="{% if session.logged_in and m.id in USER_LIST %}info{% else %}{% endif %}">
+                    {% if session.logged_in %}
+                        <td class="fixed_glyph">
+                            <a class="btn btn-link btn-sm bookmark"
+                               data-bookmark={% if m.id in USER_LIST %}true{% else %}false{% endif %}>
+                                <span class='glyphicon glyphicon-star{% if not m.id in USER_LIST %}-empty{% endif %}'></span>
+                            </a>
+                        </td>
+                    {% endif %}
+                    <td class="center_text">
+                        <a class="title" href="{{ url_for("manga_item", manga_id=m.id) }}"><strong>{{ m.title }}</strong></a>
+                    </td>
+                    <td>
+                        <strong>Publisher:</strong> {{ m.publisher.value }}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
 
-</div>
+    </div>
 
 
 {% endblock %}

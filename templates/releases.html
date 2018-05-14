@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 
 {% block head %}
-    <title>MangaManager:Releases</title>
+    <title>MangaManager: Releases</title>
     <link rel="stylesheet" type="text/css" href="/static/css/root.css">
     <link rel="stylesheet" type="text/css" href="/static/css/releases.css">
     <script src="/static/script/releases.js"></script>
@@ -33,7 +33,7 @@
                         </thead>
                         <tbody>
                         {% for r in value %}
-                            <tr class="info">
+                            <tr>
                                 <td class='fixed_c'>
                                     <a data-toggle="popover" data-html="true" data-trigger="hover"
                                        data-content="<img class='pop_img' src='{{ r.cover }}'>">

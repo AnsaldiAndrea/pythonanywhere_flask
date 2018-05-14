@@ -10,20 +10,20 @@
         $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
     </script>
     <script>
-    $(document).ready(function(){
-        $('[data-toggle="popover"]').popover({
+        $(document).ready(function(){
+            $('[data-toggle="popover"]').popover({
+            });
         });
-    });
     </script>
 
     {% block head %}{% endblock %}
 </head>
 
 <body>
-	{% include '_navbar.html' %}
-	<div class='container'>
-	    {% include '_messages.html' %}
-	    {% block body %}{% endblock %}
-	</div>
+{% include '_navbar.html' %}
+<div class='container'>
+    {% include '_messages.html' %}
+    {% block body %}{% endblock %}
+</div>
 
 </body>

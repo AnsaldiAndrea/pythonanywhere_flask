@@ -1,7 +1,15 @@
 {% extends 'layout.html' %}
 
+{% block head %}
+    <title>Manga Manager: Dashboard</title>
+{% endblock %}
+
 {% block body %}
-  <h1>Dashboard <small> Welcome {{session.username}}</small></h1>
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for("index") }}">Home</a></li>
+        <li class="active">Dashboard</li>
+    </ol>
+    <h1>Dashboard <small> Welcome {{session.username}}</small></h1>
 
 
 {% endblock %}

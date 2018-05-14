@@ -2,11 +2,16 @@
 
 {% block head %}
     <title>MangaManager: Manga</title>
-    <script type="text/javascript" src="/static/script/manga_new.js"></script>
+    <script type="text/javascript" src="/static/script/manga.js"></script>
     <link rel="stylesheet" type="text/css" href="/static/css/mobile/manga.css">
 {% endblock %}
 
 {% block body %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for("index") }}">Home</a></li>
+        <li class="active">Manga</li>
+    </ol>
+
     <h2>Manga</h2>
     <p>List of all available Manga</p>
 
@@ -35,7 +40,7 @@
         </thead>
         <tbody>
             {% for m in MANGA_LIST %}
-            <tr id="{{ m.id }}" class="{% if session.logged_in and m.id in USER_LIST %}active{% else %}{% endif %}">
+            <tr id="{{ m.id }}" class="{% if session.logged_in and m.id in USER_LIST %}info{% else %}{% endif %}">
                 {% if session.logged_in %}
                 <td class="fixed_glyph">
                     <a href="javascript:void(0)" class="btn btn-link btn-sm bookmark"

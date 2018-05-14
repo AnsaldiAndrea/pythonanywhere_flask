@@ -1,10 +1,10 @@
 {% extends "layout.html" %}
 {% block head %}
-    <title>Internal Server Error</title>
+    <title>Manga Manager: 500 - Internal Server Error</title>
 {% endblock %}
 {% block body %}
-  <h1>Internal Server Error</h1>
-  <p>A problem has occurred while processing your request:
-  <p>{{ error }}</p>
-  <p><a href="{{ url_for('index') }}">Return to homepage</a>
+    <h1>Internal Server Error</h1>
+    <p>A problem has occurred while processing your request:
+    <p>{{ error }}</p>
+    <p><a href="{{ url_for('index') }}">Return to homepage</a>
 {% endblock %}

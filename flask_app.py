@@ -1,18 +1,17 @@
 # TODO:
 #   Important:
-#   - Add subtitle as primary key in Releases and Collection
-#   - Remove Depraceted code
 #   - Replace all instances of manga or release dictionary with new Object classes
-#   - Change password encoding to include salt and stronger encoding (check bookmark) + add salt column in user table
-#   - Change password checking in login to reflect changes on password encoding
 #   - Remove Admin pages (useless for now) - keep admin status
-#   - Remove Unknown references and instances - moved to local
 #   Next update:
 #   - Add statistics to index page
+#   - Add This Week + Previous to dashboard for ease of use
 #   - Add personal statistics to dashboard
 #   - Add footer to all pages
-#   - Add backwards navigation to all pages (check bookmark)
 #   - Add genre and artist/author search
+#   Future Updates:
+#   - Change password encoding to include salt and stronger encoding (check bookmark) + add salt column in user table
+#   - Change password checking in login to reflect changes on password encoding
+#
 
 import os
 import traceback
@@ -439,6 +438,8 @@ def admin_login():
     return render_template('admin/admin.html')
 
 
+# region API
+
 class ApiIds(Resource):
     def get(self):
         data = db_helper.get_ids()
@@ -518,7 +519,10 @@ api.add_resource(ApiAlias, '/api/alias')
 api.add_resource(ApiReleases, '/api/releases')
 api.add_resource(ApiParseRelease, '/api/releases/parse')
 
+# endregion
 
+
+# region Jinja2 Filters
 def filter_format_datetime(value: datetime):
     return value.strftime("%d/%m/%Y")
 
@@ -534,3 +538,4 @@ def filter_format_price(value):
 app.jinja_env.filters['format_date'] = filter_format_datetime
 app.jinja_env.filters['format_commas'] = filter_format_commas
 app.jinja_env.filters['format_price'] = filter_format_price
+# endregion

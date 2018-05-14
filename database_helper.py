@@ -310,7 +310,7 @@ def update_manga_from_db(db, release):
         if t <= now:
             if release.volume >= m.released:
                 m.released = release.volume
-                if release.volume:
+                if release.cover:
                     m.cover = release.cover
             if release.volume == 1 and m.status == Status.TBA:
                 m.status = Status.Ongoing
