@@ -3,6 +3,7 @@
 {% block head %}
     <script type="text/javascript" src="/static/script/manga.js"></script>
     <link rel="stylesheet" type="text/css" href="/static/css/root.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/manga.css">
     <title>MangaManager: Manga</title>
 
 {% endblock %}
@@ -46,7 +47,7 @@
                 <tr id="{{ m.id }}" class="{% if session.logged_in and m.id in USER_LIST %}info{% else %}{% endif %}">
                     {% if session.logged_in %}
                         <td class="fixed_glyph">
-                            <a class="btn btn-link btn-sm bookmark"
+                            <a class="btn btn-link btn-sm bookmark center_glyph"
                                data-bookmark={% if m.id in USER_LIST %}true{% else %}false{% endif %}>
                                 <span class='glyphicon glyphicon-star{% if not m.id in USER_LIST %}-empty{% endif %}'></span>
                             </a>
@@ -55,9 +56,7 @@
                     <td class="center_text">
                         <a class="title" href="{{ url_for("manga_item", manga_id=m.id) }}"><strong>{{ m.title }}</strong></a>
                     </td>
-                    <td>
-                        <strong>Publisher:</strong> {{ m.publisher.value }}
-                    </td>
+                    <td>{{ m.publisher.value }}</td>
                 </tr>
             {% endfor %}
             </tbody>
